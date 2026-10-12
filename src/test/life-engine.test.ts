@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeLife, annualEvent, chooseYear, takeAction, isLife, modify } from '../lib/life-engine';
+import { makeLife, annualEvent, chooseYear, takeAction, isLife, modify, childhoodEvents, normalizeLife, resolveAthletics, raceScore, RACE_TARGET, startTraining, canTrain } from '../lib/life-engine';
 
 describe('IMMERSED life simulation', () => {
   it('creates a valid newborn with family and memories', () => {
@@ -10,12 +10,12 @@ describe('IMMERSED life simulation', () => {
     expect(life.journal[0]?.text).toContain('a boy in Nigeria');
   });
   it('records consequences and resets yearly activity allowance', () => {
-    const life = takeAction(makeLife(), 'Rest', 'I rested.', { health: 8 });
+    const life = takeAction({ ...makeLife(), age: 6 }, 'Rest', 'I rested.', { health: 8 });
     const event = annualEvent(life);
     const choice = event.choices[0];
     if (!choice) throw new Error('Expected a yearly choice');
     const next = chooseYear(life, event, choice);
-    expect(next.age).toBe(1);
+    expect(next.age).toBe(7);
     expect(next.actions).toBe(0);
     expect(next.journal.at(-1)?.text).toBe(choice.outcome);
     expect(next.journal.at(-1)?.choice).toBe(choice.label);
@@ -44,5 +44,92 @@ describe('IMMERSED life simulation', () => {
     expect(isLife(null)).toBe(false);
     expect(isLife({ name: 'Divine', age: 3 })).toBe(false);
     expect(isLife({ ...makeLife(), people: [null] })).toBe(false);
+  });
+  it('plays every childhood dilemma once, including multiple moments at one age', () => {
+    let life = makeLife();
+    for (const expected of childhoodEvents) {
+      const event = annualEvent(life);
+      expect(event.title).toBe(expected.title);
+      const choice = event.choices[0];
+      if (!choice) throw new Error('Missing choice');
+      life = chooseYear(life, event, choice);
+      expect(life.age).toBe(expected.age);
+      expect(life.journal.at(-1)?.choice).toBe(choice.label);
+      life = normalizeLife(JSON.parse(JSON.stringify(life)));
+    }
+    expect(annualEvent(life).title).toBe('The first day of school');
+    expect(life.journal.filter(j => j.kind === 'choice')).toHaveLength(childhoodEvents.length);
+  });
+  it('changes creativity, mischief and family bonds for cheeky decisions', () => {
+    const event = childhoodEvents.find(e => e.age === 2);
+    const choice = event?.choices[1];
+    if (!event || !choice) throw new Error('Missing mural event');
+    const life = makeLife();
+    const next = chooseYear(life, event, choice);
+    expect(next.stats.creativity).toBe(life.stats.creativity + 6);
+    expect(next.stats.mischief).toBe(life.stats.mischief + 5);
+    expect(next.people[0]?.bond).toBe(90);
+  });
+  it('does not reset action allowance or pay salary for a same-age moment', () => {
+    const life = { ...makeLife(), age: 3, actions: 2, job: 'Shop assistant' };
+    const event = childhoodEvents.find(e => e.age === 3);
+    const choice = event?.choices[0];
+    if (!event || !choice) throw new Error('Missing event');
+    const next = chooseYear(life, event, choice);
+    expect(next.actions).toBe(2);
+    expect(next.money).toBe(0);
+  });
+  it('upgrades legacy saves without losing their story', () => {
+    const life = makeLife();
+    const { creativity, mischief, toughness, ...oldStats } = life.stats;
+    const { training, ...oldLife } = life;
+    const legacy = { ...oldLife, stats: oldStats };
+    expect(isLife(legacy)).toBe(true);
+    if (!isLife(legacy)) throw new Error('Invalid legacy save');
+    const upgraded = normalizeLife(legacy);
+    expect(upgraded.stats).toEqual(life.stats);
+    expect(upgraded.training).toEqual(life.training);
+    expect(upgraded.journal).toEqual(life.journal);
+  });
+  it('awards medals and praise only at the race threshold, with funny losses', () => {
+    const life = makeLife();
+    const won = resolveAthletics(life, 'sprint', RACE_TARGET);
+    const lost = resolveAthletics(life, 'swim', RACE_TARGET - 1);
+    expect(raceScore(RACE_TARGET + 10)).toBe(100);
+    expect(raceScore(-1)).toBe(0);
+    expect(won.assets).toContain('Sprint gold medal');
+    expect(won.stats.toughness).toBe(life.stats.toughness + 5);
+    expect(won.journal.at(-1)?.text).toContain('teacher praised');
+    expect(lost.assets).toHaveLength(0);
+    expect(lost.journal.at(-1)?.text).toContain('splashed enthusiastically');
+    expect(isLife(won)).toBe(true);
+  });
+  it('shares four training slots between sports and adds exactly five progress per session', () => {
+    let life = { ...makeLife(), age: 6 };
+    life = startTraining(life, 'sprint');
+    life = startTraining(life, 'swim');
+    life = startTraining(life, 'sprint');
+    life = startTraining(life, 'swim');
+    expect(life.training.sessions).toBe(4);
+    expect(life.training.progress).toEqual({ sprint: 10, swim: 10 });
+    expect(life.actions).toBe(0);
+    expect(canTrain(life)).toBe(false);
+    expect(startTraining(life, 'swim')).toBe(life);
+    const event = annualEvent(life);
+    const choice = event.choices[0];
+    if (!choice) throw new Error('Missing event choice');
+    const next = chooseYear(life, event, choice);
+    expect(next.training.sessions).toBe(0);
+    expect(next.training.progress).toEqual(life.training.progress);
+    expect(canTrain(next)).toBe(true);
+    expect(canTrain(makeLife())).toBe(false);
+  });
+  it('keeps separate personal bests and never replaces a best with a slower round or a failure', () => {
+    let life = resolveAthletics(makeLife(), 'sprint', RACE_TARGET, 2300);
+    life = resolveAthletics(life, 'sprint', RACE_TARGET, 3000);
+    life = resolveAthletics(life, 'swim', RACE_TARGET, 3500);
+    life = resolveAthletics(life, 'sprint', 3, 5000);
+    expect(life.training.personalBests).toEqual({ sprint: 2300, swim: 3500 });
+    expect(normalizeLife(JSON.parse(JSON.stringify(life))).training).toEqual(life.training);
   });
 });
