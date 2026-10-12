@@ -4,11 +4,12 @@ export type Person = { name: string; role: string; bond: number };
 export type Life = {
   version: 1; name: string; country: string; sex: string; age: number; family: string;
   stats: Stats; journal: Entry[]; people: Person[]; money: number; job: string;
+  kid: KidState; school: School | null;
   education: string; assets: string[]; actions: number; alive: boolean;
   training: { sessions: number; progress: Record<Sport, number>; personalBests: Partial<Record<Sport, number>>; lastResults?: Partial<Record<Sport, { completionMs: number | null; healthGain: number; toughnessGain: number }>> };
 };
 export type Sport = 'sprint' | 'swim';
-export type Choice = { label: string; outcome: string; effects: Partial<Stats>; money?: number; education?: string; job?: string; person?: Person; familyBond?: number; athletic?: Sport };
+export type Choice = { label: string; outcome: string; effects: Partial<Stats>; money?: number; education?: string; job?: string; person?: Person; familyBond?: number; athletic?: Sport; schoolType?: 'public' | 'private' };
 export type LifeEvent = { title: string; text: string; choices: Choice[]; age?: number };
 export const countries = ['Nigeria', 'France', 'United Kingdom', 'United States', 'Canada', 'Ghana', 'Japan', 'Brazil'];
 const names: Record<string, string[]> = {
@@ -29,6 +30,7 @@ export function makeLife(name = 'Amara Eze', country = 'Nigeria', sex = 'Female'
     version: 1, name: name.trim() || randomName(country), country, sex, age: 0, family,
     stats: { happiness: 87, health: 96, smarts: 68, looks: 74, creativity: 40, mischief: 20, toughness: 35 },
     money: 0, job: 'Not working', education: 'Not enrolled', assets: [], actions: 0, alive: true,
+    kid: makeKid(family, country), school: null,
     training: { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} },
     people: [{ name: 'Mother', role: 'Mother', bond: 92 }, { name: 'Father', role: 'Father', bond: 86 }],
     journal: [
@@ -96,9 +98,9 @@ export function annualEvent(life: Life): LifeEvent {
     { label: 'Explore everything', outcome: 'I explored every corner of the house, discovering something new each day.', effects: { smarts: 5, health: 2 } },
     { label: 'Play with my family', outcome: 'We invented silly games and laughed until bedtime. I felt safe and loved.', effects: { happiness: 6 } },
   ] };
-  if (age === 6) return { title: 'The first day of school', text: 'A new classroom. Unfamiliar faces. Your teacher asks you to introduce yourself. How will you begin?', choices: [
-    { label: 'Say hello to everyone', outcome: 'I started primary school and made my first friend, Alex. It was less scary than I imagined.', effects: { happiness: 5 }, education: 'Primary school', person: { name: 'Alex', role: 'Friend', bond: 60 } },
-    { label: 'Find a quiet seat and listen', outcome: 'I started primary school. I listened carefully and discovered that I love learning.', effects: { smarts: 7 }, education: 'Primary school' },
+  if (age === 6) return { title: 'The first day of school', text: 'A school bag, a new beginning. Your family sits down to choose where your next chapter will unfold.', choices: [
+    { label: 'Enroll in Public School', outcome: 'I started primary school. A lively classroom taught me curiosity, friendship and a little streetwise resilience.', effects: { happiness: 3, toughness: 3 }, education: 'Primary school', schoolType: 'public' },
+    { label: 'Enroll in Private Academy', outcome: 'I started primary school at a private academy. Crisp uniforms, ambitious classmates and a world of opportunity.', effects: { smarts: 3 }, education: 'Primary school', schoolType: 'private' },
   ] };
   if (age < 13) return { title: age < 6 ? 'A little adventure' : 'Finding my place', text: age < 6 ? 'The afternoon is yours. Outside, the garden is full of possibilities. Inside, your favorite stories are waiting.' : 'There is a school project to finish, but your friends want you to come out and play. What matters most today?', choices: [
     { label: 'Let curiosity lead the way', outcome: 'I spent the afternoon reading and making things. I am getting better at figuring things out.', effects: { smarts: 6, happiness: 1 } },
@@ -145,6 +147,7 @@ export function annualEvent(life: Life): LifeEvent {
 }
 export function chooseYear(life: Life, event: LifeEvent, choice: Choice): Life {
   const age = event.age ?? life.age + 1;
+  if (choice.schoolType === 'private' && !privateEligibility(life, age).allowed) return life;
   const job = choice.job ?? life.job;
   const salary = job === 'Junior analyst' ? 42000 : job === 'Freelance writer' ? 24000 : job === 'Shop assistant' ? 18000 : job === 'Retired' ? 9000 : 0;
   const advanced = age > life.age;
@@ -152,11 +155,12 @@ export function chooseYear(life: Life, event: LifeEvent, choice: Choice): Life {
   const stats = modify(life, effects);
   const alive = age < 90 && stats.health > 5;
   const people = life.people.map(p => p.role === 'Mother' || p.role === 'Father' ? { ...p, bond: Math.max(0, Math.min(100, p.bond + (choice.familyBond ?? 0))) } : p);
-  return { ...life, age, actions: advanced ? 0 : life.actions, training: { ...life.training, sessions: advanced ? 0 : life.training.sessions }, alive, stats, job, education: choice.education ?? life.education,
+  const next: Life = { ...life, age, actions: advanced ? 0 : life.actions, training: { ...life.training, sessions: advanced ? 0 : life.training.sessions }, alive, stats, job, education: choice.education ?? life.education,
     money: Math.max(0, life.money + (advanced ? Math.round(salary * .35) : 0) + (choice.money ?? 0)),
     people: choice.person && !people.some(p => p.name === choice.person?.name) ? [...people, choice.person] : people,
     journal: [...life.journal, { age, title: event.title, choice: choice.label, text: choice.outcome, kind: 'choice' }, ...(!alive ? [{ age, title: 'A life remembered', text: 'My story has come to its end. The people I loved, the choices I made, and the little moments in between became a life that was entirely mine.', kind: 'milestone' as const }] : [])],
   };
+  return advanceKid(next, life.age, choice.schoolType);
 }
 export function takeAction(life: Life, title: string, text: string, effects: Partial<Stats>, money = 0): Life {
   return { ...life, actions: life.actions + 1, stats: modify(life, effects), money: life.money + money, journal: [...life.journal, { age: life.age, title, text, kind: 'activity' }] };
@@ -164,7 +168,7 @@ export function takeAction(life: Life, title: string, text: string, effects: Par
 export const RACE_DURATION = 5000;
 export const RACE_TARGET = 24;
 export const TRAINING_LIMIT = 4;
-export function canTrain(life: Life) { return life.alive && life.age >= 5 && life.training.sessions < TRAINING_LIMIT; }
+export function canTrain(life: Life) { return life.alive && life.age >= 5 && life.training.sessions < TRAINING_LIMIT && !isGrounded(life); }
 export function startTraining(life: Life, sport: Sport): Life {
   if (!canTrain(life)) return life;
   return { ...life, training: { ...life.training, sessions: life.training.sessions + 1, progress: { ...life.training.progress, [sport]: life.training.progress[sport] + 5 } }, journal: [...life.journal, { age: life.age, title: sport === 'sprint' ? 'Sprint training' : 'Swimming practice', text: `I trained ${sport === 'sprint' ? 'on the track' : 'in the pool'}. My ${sport} progress grew by 5. Training session ${life.training.sessions + 1} of 4 this year.`, kind: 'activity' }] };
@@ -184,10 +188,100 @@ export function resolveAthletics(life: Life, sport: Sport, taps: number, complet
 }
 // Version 1 saves from before temperament stats receive defaults, not a reset.
 export function normalizeLife(life: Life): Life {
-  return { ...life, training: life.training ?? { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} }, stats: { ...life.stats, creativity: life.stats.creativity ?? 40, mischief: life.stats.mischief ?? 20, toughness: life.stats.toughness ?? 35 } };
+  return { ...life, kid: life.kid ?? makeKid(life.family, life.country), school: life.school ?? (life.age >= 6 && life.age < 18 ? makeSchool(life, 'public') : null), training: life.training ?? { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} }, stats: { ...life.stats, creativity: life.stats.creativity ?? 40, mischief: life.stats.mischief ?? 20, toughness: life.stats.toughness ?? 35 } };
 }
 export function isLife(value: unknown): value is Life {
   if (!value || typeof value !== 'object') return false;
   const l = value as Partial<Life>;
   return l.version === 1 && typeof l.name === 'string' && typeof l.country === 'string' && typeof l.sex === 'string' && typeof l.family === 'string' && typeof l.age === 'number' && l.age >= 0 && l.age <= 90 && typeof l.alive === 'boolean' && typeof l.money === 'number' && typeof l.actions === 'number' && typeof l.job === 'string' && typeof l.education === 'string' && Array.isArray(l.assets) && l.assets.every(a => typeof a === 'string') && Array.isArray(l.people) && l.people.every(p => p && typeof p.name === 'string' && typeof p.role === 'string' && typeof p.bond === 'number') && Array.isArray(l.journal) && l.journal.every(e => e && typeof e.age === 'number' && typeof e.title === 'string' && typeof e.text === 'string') && !!l.stats && ['happiness', 'health', 'smarts', 'looks'].every(k => typeof l.stats?.[k as keyof Stats] === 'number');
 }
+export type School = { name: string; type: 'public' | 'private'; scholarship: boolean; tuition: number; gpa: number; classmates: Person[]; clubs: string[]; effort: 'balanced' | 'study' | 'slack' };
+export type KidState = { familyFunds: number; annualBudget: number; homeValue: number; neighborhood: string; energy: number; approval: number; savings: number; inventory: string[]; choresDone: string[]; requests: string[]; promisedChore: boolean; groundedUntil: number; permission: boolean; popularity: number; examBonus: number };
+export type Pitch = 'Polite Bargain' | 'Sweet Beggar' | 'Academic Logic' | 'Meltdown';
+export const pitches: Pitch[] = ['Polite Bargain', 'Sweet Beggar', 'Academic Logic', 'Meltdown'];
+export const dollars = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+function seed(text: string) { return [...text].reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0, 7); }
+function makeKid(family: string, country: string): KidState {
+  const budget = family.includes('comfortable') ? 55000 : family.includes('pressure') ? 5000 : family.includes('modest') ? 9000 : 22000;
+  const streets = ['Garden Quarter', 'Riverside', 'Old Town', 'Maple Grove', 'Market District', 'Hillcrest'];
+  return { familyFunds: budget, annualBudget: budget, homeValue: budget*12, neighborhood: streets[seed(country+family)%streets.length] ?? 'Riverside', energy: 100, approval: 75, savings: 0, inventory: [], choresDone: [], requests: [], promisedChore: false, groundedUntil: 0, permission: false, popularity: 30, examBonus: 0 };
+}
+export function tuitionAt(age: number) { return age < 12 ? 12000 : age < 15 ? 18000 : 25000; }
+export function privateEligibility(life: Life, age = Math.max(6,life.age)) { const scholarship = life.stats.smarts >= 85; return { allowed: scholarship || life.kid.familyFunds >= tuitionAt(age), scholarship, cost: scholarship ? 0 : tuitionAt(age) }; }
+export function schoolName(life: Life, type: 'public' | 'private') {
+  const local: Record<string,string[]> = { Nigeria:['Unity','Ikeja','Surulere','Olumo','Freedom'], Ghana:['Adabraka','Osu','Akosombo','Nkrumah'], France:['Victor Hugo','Jean Moulin','Montparnasse','Les Lilas'], Japan:['Sakura','Midori','Hikari','Aoba'], Brazil:['Vila Nova','Santos Dumont','Jardim','Monte Verde'] };
+  const list = local[life.country] ?? ['Riverside','Oakwood','Hillcrest','Westbrook','St. Anselm','Brookfield']; const n=seed(life.name+life.country+type);
+  return `${list[n%list.length]} ${type==='private' ? ['Academy','Preparatory School','College'][n%3] : ['Community School','Public School','Primary School'][n%3]}`;
+}
+function makeSchool(life: Life, type: 'public'|'private'): School {
+  const list=names[life.country] ?? names.Nigeria ?? []; const offset=seed(life.name)%list.length;
+  return { name:schoolName(life,type),type,scholarship:type==='private'&&life.stats.smarts>=85,tuition:type==='private'&&life.stats.smarts<85?tuitionAt(life.age):0,gpa:Math.min(4,2+life.stats.smarts/60),classmates:Array.from({length:3},(_,i)=>({name:list[(offset+i)%list.length]??'Alex',role:'Classmate',bond:40+i*10})),clubs:[],effort:'balanced' };
+}
+function record(life: Life,title:string,text:string): Life { return {...life,journal:[...life.journal,{age:life.age,title,text,kind:'activity'}]}; }
+export function isGrounded(life: Life) { return life.age < 18 && life.kid.groundedUntil > life.age; }
+function ground(life: Life, reason: string): Life { return record({...life,kid:{...life.kid,groundedUntil:life.age+1,permission:false,approval:Math.max(0,life.kid.approval-10)}},'Grounded & confiscated',`${reason} My parents grounded me for the rest of this year. Sports and shopping are locked, my gear is confiscated, and allowance is frozen. I can still study and help at home.`); }
+function advanceKid(life: Life, previousAge: number, enrollment?: 'public'|'private'): Life {
+  let next=life;
+  if(life.age>previousAge){
+    const skipped=life.kid.promisedChore;
+    next={...next,kid:{...next.kid,energy:100,choresDone:[],requests:[],permission:false,promisedChore:false,familyFunds:next.kid.annualBudget}};
+    if(next.school && next.age<18){ const gpa=Math.max(0,Math.min(4,next.school.gpa+(next.school.effort==='study'?.2:next.school.effort==='slack'?-.6:0))); next={...next,school:{...next.school,gpa}}; if(gpa<1.5) next=ground(next,'My report card had failing grades.'); }
+    if(skipped && next.age<18) next=ground(next,'I never did the chore I promised.');
+    if(next.age===18 && next.kid.savings>0) { const amount=next.kid.savings; next=record({...next,money:next.money+amount,kid:{...next.kid,savings:0}},'My piggy bank opens',`${dollars(amount)} saved through childhood is now mine to use.`); }
+  }
+  if(enrollment) next={...next,school:makeSchool(next,enrollment)};
+  if(next.school && next.age<18 && (enrollment || next.age>previousAge)) {
+    let school={...next.school,tuition:next.school.type==='private'&&!next.school.scholarship?tuitionAt(next.age):0};
+    if(school.tuition>next.kid.familyFunds){ school=makeSchool(next,'public'); next=record(next,'A change of school','Private tuition exceeded our family budget. I transferred to public school, with new classmates and a fresh start.'); }
+    next={...next,school,kid:{...next.kid,familyFunds:Math.max(0,next.kid.familyFunds-school.tuition)}};
+  }
+  if(next.age>=5 && next.age<18 && next.stats.mischief>=75 && !isGrounded(next)) next=ground(next,'My mischief finally caught up with me.');
+  return next;
+}
+const choresByTier = [
+  [['Tidy toys',3],['Wipe table',5],['Pair socks',6],['Rinse dishes',8],['Feed pet',10]],
+  [['Wash sink of dishes',12],['Sweep / mop',15],['Trash bins',18],['Wash car',25],['Weed yard',30]],
+  [['Clean bathrooms',35],['Mow lawn',45],['Detail car',55],['Paper round / flyers',65],['Babysit / cook dinner',85]],
+] as const;
+export function availableChores(life: Life) { return life.age<5||life.age>=18 ? [] : choresByTier[life.age<8?0:life.age<12?1:2].map(([title,reward],i)=>({title,reward,energy:4+i})); }
+export function doChore(life: Life, title: string): Life {
+  const chore=availableChores(life).find(c=>c.title===title);
+  if(!life.alive||!chore||life.kid.choresDone.includes(title)||life.kid.energy<chore.energy) return life;
+  const paid=!isGrounded(life); return record({...life,money:life.money+(paid?chore.reward:0),people:life.people.map(p=>p.role==='Mother'||p.role==='Father'?{...p,bond:Math.min(100,p.bond+2)}:p),kid:{...life.kid,energy:life.kid.energy-chore.energy,approval:Math.min(100,life.kid.approval+4),choresDone:[...life.kid.choresDone,title],promisedChore:false}},title,`I helped at home: ${title.toLowerCase()}. My family appreciated it. ${paid?`I earned ${dollars(chore.reward)}.`:'Allowance is frozen while I am grounded.'}`);
+}
+export function skipChore(life: Life): Life { if(life.age<5||life.age>=18||!life.alive)return life; return ground({...life,stats:modify(life,{mischief:5}),kid:{...life.kid,promisedChore:false}},'I skipped my household responsibilities.'); }
+export function parentPitch(life: Life,index:number,request:'money'|'sports',pitch:Pitch): Life {
+  const parent=life.people[index]; const key=`${index}-${request}`;
+  if(!parent||!['Mother','Father'].includes(parent.role)||life.age<5||life.age>=18||!life.alive||isGrounded(life)||life.kid.requests.includes(key))return life;
+  let next={...life,kid:{...life.kid,requests:[...life.kid.requests,key]}};
+  if(pitch==='Meltdown') return ground({...next,stats:modify(next,{mischief:8,happiness:-3})},`I threw a spectacular tantrum at my ${parent.role.toLowerCase()}.`);
+  const success=pitch==='Polite Bargain'?availableChores(life).some(c=>!life.kid.choresDone.includes(c.title)):pitch==='Sweet Beggar'?parent.bond>=75:life.stats.smarts>=70;
+  if(!success)return record(next,'A parent says no',`My ${pitch.toLowerCase()} did not persuade my ${parent.role.toLowerCase()}. “Let’s build trust first.”`);
+  const amount=life.age<8?10:life.age<12?25:60;
+  if(request==='money' && next.kid.familyFunds<amount)return record(next,'A tight family budget','My parent wanted to help, but there is no room in our budget right now.');
+  next={...next,money:next.money+(request==='money'?amount:0),kid:{...next.kid,permission:request==='sports'||next.kid.permission,promisedChore:pitch==='Polite Bargain'||next.kid.promisedChore,familyFunds:next.kid.familyFunds-(request==='money'?amount:0)}};
+  return record(next,'My pitch worked',`My ${parent.role.toLowerCase()} accepted my ${pitch.toLowerCase()}. ${request==='money'?`I received ${dollars(amount)} pocket money.`:'I have permission to join sports and activities this year.'}${pitch==='Polite Bargain'?' I promised to finish a chore before the year ends.':''}`);
+}
+export function academicEffort(life: Life,effort:'study'|'slack'): Life {
+  if(!life.alive||!life.school||life.age>=18||life.actions>=3||life.kid.energy<5)return life;
+  let next=takeAction(life,effort==='study'?'Study session':'Slacking off',effort==='study'?'I put my head down and studied. My grades and confidence improved.':'I skipped homework for fun. My report card will remember.',effort==='study'?{smarts:4}:{happiness:4,mischief:5});
+  next={...next,school:{...life.school,effort,gpa:Math.max(0,Math.min(4,life.school.gpa+(effort==='study'?.25:-.7)))},kid:{...next.kid,energy:next.kid.energy-5}};
+  return (next.school?.gpa??4)<1.5?ground(next,'My grades are failing.'):next;
+}
+export function joinClub(life: Life,club:string): Life { if(!life.alive||!life.school||life.age>=18||isGrounded(life)||!life.kid.permission||life.actions>=3||life.school.clubs.includes(club))return life; const next=takeAction(life,`Joined ${club}`,`With my parents’ permission, I joined ${club} and met classmates who share my interests.`,{happiness:4,creativity:2});return {...next,school:{...life.school,clubs:[...life.school.clubs,club]}}; }
+export function befriendClassmate(life:Life,name:string):Life { if(!life.alive||!life.school||life.age>=18||life.actions>=3)return life; const person=life.school.classmates.find(p=>p.name===name);if(!person)return life;const next=takeAction(life,'A school friendship',`I spent lunch with ${name}. School feels a little friendlier.`,{happiness:3});return {...next,school:{...life.school,classmates:life.school.classmates.map(p=>p.name===name?{...p,bond:Math.min(100,p.bond+8)}:p)}}; }
+export const shopItems = [
+  {id:'snack',name:'Treats & snacks',price:5,detail:'+6 happiness',kind:'consumable'},
+  {id:'clothes',name:'Trendy clothes & sneakers',price:30,detail:'+12 school popularity',kind:'owned'},
+  {id:'guide',name:'Study guide',price:20,detail:'+0.2 GPA · +5 exam readiness',kind:'owned'},
+  {id:'tutor',name:'Tutor session',price:50,detail:'+0.4 GPA · +10 exam readiness',kind:'consumable'},
+  {id:'gear',name:'Sports gear',price:40,detail:'20% more race distance per tap',kind:'owned'},
+  {id:'piggy',name:'Piggy bank',price:10,detail:'Protect savings until age 18',kind:'owned'},
+] as const;
+export function buyItem(life:Life,id:string):Life {
+ const item=shopItems.find(i=>i.id===id);if(!item||!life.alive||life.age<5||life.age>=18||isGrounded(life)||life.money<item.price||(item.kind==='owned'&&life.kid.inventory.includes(id))||((id==='tutor'||id==='guide')&&!life.school))return life;
+ const next=record({...life,money:life.money-item.price,stats:modify(life,id==='snack'?{happiness:6}:{}),kid:{...life.kid,inventory:item.kind==='owned'?[...life.kid.inventory,id]:life.kid.inventory,popularity:Math.min(100,life.kid.popularity+(id==='clothes'?12:0)),examBonus:Math.min(100,life.kid.examBonus+(id==='guide'?5:id==='tutor'?10:0))},school:life.school?{...life.school,gpa:Math.min(4,life.school.gpa+(id==='guide'?.2:id==='tutor'?.4:0))}:null},`Bought ${item.name}`,`I spent ${dollars(item.price)} on ${item.name.toLowerCase()}. ${item.detail}.`);return next;
+}
+export function depositSavings(life:Life,amount:number):Life { if(!life.alive||life.age>=18||!life.kid.inventory.includes('piggy')||!Number.isFinite(amount)||amount<=0||amount>life.money)return life;return record({...life,money:life.money-amount,kid:{...life.kid,savings:life.kid.savings+amount}},'A little saved for later',`I put ${dollars(amount)} into my piggy bank. It will open when I turn 18.`); }
+export function gearMultiplier(life:Life) {return life.kid.inventory.includes('gear')&&!isGrounded(life)?1.2:1;}
+export function worldAction(life:Life,destination:string,emigrate=false):Life { const cost=emigrate?5000:1500;if(!life.alive||life.age<(emigrate?21:18)||!countries.includes(destination)||destination===life.country||life.money<cost)return life;return record({...life,money:life.money-cost,country:emigrate?destination:life.country},emigrate?'A new home country':'A vacation abroad',emigrate?`My visa was approved. I moved to ${destination} and began a new chapter.`:`I visited ${destination}. New streets, new food and a little wider world.`); }
