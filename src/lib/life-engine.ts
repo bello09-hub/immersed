@@ -1,5 +1,5 @@
 export type Stats = { happiness: number; health: number; smarts: number; looks: number };
-export type Entry = { age: number; title: string; text: string; kind: 'birth' | 'milestone' | 'choice' | 'activity' };
+export type Entry = { age: number; title: string; text: string; choice?: string; kind: 'birth' | 'milestone' | 'choice' | 'activity' };
 export type Person = { name: string; role: string; bond: number };
 export type Life = {
   version: 1; name: string; country: string; sex: string; age: number; family: string;
@@ -102,7 +102,7 @@ export function chooseYear(life: Life, event: LifeEvent, choice: Choice): Life {
   return { ...life, age, actions: 0, alive, stats: modify(life, effects), job, education: choice.education ?? life.education,
     money: Math.max(0, life.money + Math.round(salary * .35) + (choice.money ?? 0)),
     people: choice.person && !life.people.some(p => p.name === choice.person?.name) ? [...life.people, choice.person] : life.people,
-    journal: [...life.journal, { age, title: event.title, text: choice.outcome, kind: 'choice' }, ...(!alive ? [{ age, title: 'A life remembered', text: 'My story has come to its end. The people I loved, the choices I made, and the little moments in between became a life that was entirely mine.', kind: 'milestone' as const }] : [])],
+    journal: [...life.journal, { age, title: event.title, choice: choice.label, text: choice.outcome, kind: 'choice' }, ...(!alive ? [{ age, title: 'A life remembered', text: 'My story has come to its end. The people I loved, the choices I made, and the little moments in between became a life that was entirely mine.', kind: 'milestone' as const }] : [])],
   };
 }
 export function takeAction(life: Life, title: string, text: string, effects: Partial<Stats>, money = 0): Life {

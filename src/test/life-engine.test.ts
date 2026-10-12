@@ -18,6 +18,7 @@ describe('IMMERSED life simulation', () => {
     expect(next.age).toBe(1);
     expect(next.actions).toBe(0);
     expect(next.journal.at(-1)?.text).toBe(choice.outcome);
+    expect(next.journal.at(-1)?.choice).toBe(choice.label);
     expect(next.stats.happiness).toBeGreaterThan(life.stats.happiness);
   });
   it('keeps stats in bounds', () => {
