@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Shuffle, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { TextSizeControl, type TextSize } from '@/components/text-size-control';
 import { countries, randomName, stage, type Life } from '@/lib/life-engine';
 
 export type Screen = 'intro' | 'menu' | 'creator' | 'settings' | 'life';
@@ -10,6 +11,7 @@ type Props = {
   sex: string; setSex: (sex: string) => void; motion: boolean; setMotion: (value: boolean) => void;
   contrast: boolean; setContrast: (value: boolean) => void; revealed: boolean; setRevealed: (value: boolean) => void;
   begin: () => void; load: () => void; notice: string;
+  textSize: TextSize; setTextSize: (value: TextSize) => void;
 };
 export function OpeningScreens(p: Props) {
   if (p.screen === 'intro') return <main className="opening-screen intro-screen">
@@ -35,6 +37,6 @@ export function OpeningScreens(p: Props) {
       <label className="form-field">Sex<select value={p.sex} onChange={e=>p.setSex(e.target.value)}><option>Female</option><option>Male</option></select></label>
       {p.saved && <p className="opening-description">Your new life will replace {p.saved.name}’s saved story on this browser.</p>}
       <Button type="submit" className="full-action">BE BORN<ArrowRight/></Button>
-    </form></> : <><p className="opening-description">Make the experience feel right for you.</p><div className="setting-row"><label htmlFor="opening-motion">Atmospheric glow animation</label><Switch id="opening-motion" checked={p.motion} onCheckedChange={p.setMotion}/></div><div className="setting-row"><label htmlFor="opening-contrast">Higher text contrast</label><Switch id="opening-contrast" checked={p.contrast} onCheckedChange={p.setContrast}/></div><Button className="full-action" onClick={()=>p.setScreen('menu')}>DONE</Button></>}
+    </form></> : <><p className="opening-description">Make the experience feel right for you.</p><TextSizeControl value={p.textSize} onChange={p.setTextSize}/><div className="setting-row"><label htmlFor="opening-motion">Atmospheric glow animation</label><Switch id="opening-motion" checked={p.motion} onCheckedChange={p.setMotion}/></div><div className="setting-row"><label htmlFor="opening-contrast">Higher text contrast</label><Switch id="opening-contrast" checked={p.contrast} onCheckedChange={p.setContrast}/></div><Button className="full-action" onClick={()=>p.setScreen('menu')}>DONE</Button></>}
   </div></main>;
 }

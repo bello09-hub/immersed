@@ -5,7 +5,7 @@ export type Life = {
   version: 1; name: string; country: string; sex: string; age: number; family: string;
   stats: Stats; journal: Entry[]; people: Person[]; money: number; job: string;
   education: string; assets: string[]; actions: number; alive: boolean;
-  training: { sessions: number; progress: Record<Sport, number>; personalBests: Partial<Record<Sport, number>> };
+  training: { sessions: number; progress: Record<Sport, number>; personalBests: Partial<Record<Sport, number>>; lastResults?: Partial<Record<Sport, { completionMs: number | null; healthGain: number; toughnessGain: number }>> };
 };
 export type Sport = 'sprint' | 'swim';
 export type Choice = { label: string; outcome: string; effects: Partial<Stats>; money?: number; education?: string; job?: string; person?: Person; familyBond?: number; athletic?: Sport };
@@ -178,7 +178,9 @@ export function resolveAthletics(life: Life, sport: Sport, taps: number, complet
   const medal = sport === 'sprint' ? 'Sprint gold medal' : 'Swimming gold medal';
   const text = won ? `I ${sport === 'sprint' ? 'sprinted' : 'swam'} past my rivals and won a gold medal! My teacher praised my determination, and my family cheered. I felt stronger than ever.` : sport === 'sprint' ? 'I ran with all my heart, but my legs apparently had other appointments. I finished behind my rivals. My teacher smiled: “There is always next time.”' : 'I splashed enthusiastically while my rivals actually moved forward. No medal this time, but my teacher praised me for trying. The pool and I will meet again.';
   const summary = won ? ` Completion time: ${(time / 1000).toFixed(2)}s. Personal best: ${((personalBests[sport] ?? time) / 1000).toFixed(2)}s.` : ' The five-second round ended before I finished the distance.';
-  return { ...life, training: { ...life.training, personalBests }, stats: modify(life, won ? { health: 3, toughness: 5, happiness: 5 } : { health: 1, toughness: 2 }), assets: won ? [...life.assets, medal] : life.assets, journal: [...life.journal, { age: life.age, title: won ? 'A little champion' : 'Not quite a personal best', text: text + summary, kind: 'activity' }] };
+  const stats = modify(life, won ? { health: 3, toughness: 5, happiness: 5 } : { health: 1, toughness: 2 });
+  const lastResults = { ...life.training.lastResults, [sport]: { completionMs: won ? time : null, healthGain: stats.health - life.stats.health, toughnessGain: stats.toughness - life.stats.toughness } };
+  return { ...life, training: { ...life.training, personalBests, lastResults }, stats, assets: won ? [...life.assets, medal] : life.assets, journal: [...life.journal, { age: life.age, title: won ? 'A little champion' : 'Not quite a personal best', text: text + summary, kind: 'activity' }] };
 }
 // Version 1 saves from before temperament stats receive defaults, not a reset.
 export function normalizeLife(life: Life): Life {
