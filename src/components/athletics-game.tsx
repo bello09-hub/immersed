@@ -33,7 +33,7 @@ export function AthleticsGame({ sport, gear = 1, personalBest, stats, training, 
   function start() { deadline.current = performance.now() + RACE_DURATION; setPhase('racing'); }
   function tap() {
     if (phase !== 'racing' || performance.now() >= deadline.current) return;
-    tapCount.current += gear;
+    tapCount.current = Math.round((tapCount.current + gear) * 10) / 10;
     setTaps(tapCount.current);
     if (tapCount.current >= RACE_TARGET) {
       const time = RACE_DURATION - (deadline.current - performance.now());
