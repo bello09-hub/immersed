@@ -19,10 +19,10 @@ const names: Record<string, string[]> = {
   Japan: ['Haru Sato', 'Yui Tanaka', 'Ren Suzuki'],
   Brazil: ['Lucas Silva', 'Mariana Costa', 'Isabela Oliveira'],
 };
-export function randomName(country: string) { const list = names[country] ?? names.Nigeria; return list[Math.floor(Math.random() * list.length)]; }
+export function randomName(country: string): string { const list = names[country] ?? ['Amara Eze', 'Chidi Nwosu']; return list[Math.floor(Math.random() * list.length)] ?? 'Amara Eze'; }
 export function makeLife(name = 'Amara Eze', country = 'Nigeria', sex = 'Female', random = false): Life {
   const families = ['A close-knit family', 'A modest household', 'A comfortable household', 'A family under pressure'];
-  const family = random ? families[Math.floor(Math.random() * families.length)] : families[0];
+  const family = (random ? families[Math.floor(Math.random() * families.length)] : families[0]) ?? 'A close-knit family';
   return {
     version: 1, name: name.trim() || randomName(country), country, sex, age: 0, family,
     stats: { happiness: 87, health: 96, smarts: 68, looks: 74 },
@@ -91,7 +91,7 @@ export function annualEvent(life: Life): LifeEvent {
     { label: 'Retire and savor the little things', outcome: 'I retired. Now there is more time for the people and places that make life meaningful.', effects: { happiness: 8 }, job: 'Retired' },
     { label: 'Keep doing what I love', outcome: 'I am not ready to slow down completely. I decided to keep working on my own terms.', effects: { smarts: 3, health: -3 } },
   ] };
-  return adult[age % adult.length];
+  return adult[age % adult.length] ?? { title: 'Another year of possibilities', text: 'A new year is waiting. How will you spend it?', choices: [{ label: 'Make the most of it', outcome: 'I made time for the things that mattered to me.', effects: { happiness: 3 } }] };
 }
 export function chooseYear(life: Life, event: LifeEvent, choice: Choice): Life {
   const age = life.age + 1;
@@ -111,5 +111,5 @@ export function takeAction(life: Life, title: string, text: string, effects: Par
 export function isLife(value: unknown): value is Life {
   if (!value || typeof value !== 'object') return false;
   const l = value as Partial<Life>;
-  return l.version === 1 && typeof l.name === 'string' && typeof l.country === 'string' && typeof l.sex === 'string' && typeof l.family === 'string' && typeof l.age === 'number' && l.age >= 0 && l.age <= 90 && typeof l.alive === 'boolean' && typeof l.money === 'number' && typeof l.actions === 'number' && typeof l.job === 'string' && typeof l.education === 'string' && Array.isArray(l.assets) && l.assets.every(a => typeof a === 'string') && Array.isArray(l.people) && l.people.every(p => typeof p.name === 'string' && typeof p.role === 'string' && typeof p.bond === 'number') && Array.isArray(l.journal) && l.journal.every(e => typeof e.age === 'number' && typeof e.title === 'string' && typeof e.text === 'string') && !!l.stats && ['happiness', 'health', 'smarts', 'looks'].every(k => typeof l.stats?.[k as keyof Stats] === 'number');
+  return l.version === 1 && typeof l.name === 'string' && typeof l.country === 'string' && typeof l.sex === 'string' && typeof l.family === 'string' && typeof l.age === 'number' && l.age >= 0 && l.age <= 90 && typeof l.alive === 'boolean' && typeof l.money === 'number' && typeof l.actions === 'number' && typeof l.job === 'string' && typeof l.education === 'string' && Array.isArray(l.assets) && l.assets.every(a => typeof a === 'string') && Array.isArray(l.people) && l.people.every(p => p && typeof p.name === 'string' && typeof p.role === 'string' && typeof p.bond === 'number') && Array.isArray(l.journal) && l.journal.every(e => e && typeof e.age === 'number' && typeof e.title === 'string' && typeof e.text === 'string') && !!l.stats && ['happiness', 'health', 'smarts', 'looks'].every(k => typeof l.stats?.[k as keyof Stats] === 'number');
 }
