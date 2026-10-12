@@ -1,24 +1,93 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, ArrowRight, Plus, Sparkles, Heart, Activity, Brain, Smile, BookOpen, Users, GraduationCap, BriefcaseBusiness, House, Settings2, ChevronRight, MapPin, Bookmark, RotateCcw, Shuffle, Check, Leaf, Baby, CalendarDays, Wallet, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { annualEvent, chooseYear, countries, isLife, makeLife, randomName, stage, takeAction, type Life, type Stats, type LifeEvent } from '@/lib/life-engine';
+import landscape from '@/assets/life-landscape.jpg';
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
+  head: () => ({ meta: [
+    { title: 'IMMERSED — Your life. Your story.' },
+    { name: 'description', content: 'Live a life that is entirely yours. Explore relationships, grow through meaningful choices, and write your story in IMMERSED, a text-based life simulation.' },
+    { property: 'og:title', content: 'IMMERSED — Your life. Your story.' },
+    { property: 'og:description', content: 'An endless possibility. Your choice. Your story. A thoughtful text-based life simulation.' },
+    { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' },
+  ] }),
   component: Index,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const navigation = [
+  { label: 'My life', icon: BookOpen }, { label: 'Relationships', icon: Users }, { label: 'Education', icon: GraduationCap },
+  { label: 'Career', icon: BriefcaseBusiness }, { label: 'Activities', icon: Sparkles }, { label: 'Assets', icon: House },
+];
+const statInfo = [ { key: 'happiness', label: 'Happiness', icon: Smile }, { key: 'health', label: 'Health', icon: Heart }, { key: 'smarts', label: 'Smarts', icon: Brain }, { key: 'looks', label: 'Looks', icon: Sparkles } ] as const;
+function money(value: number, country: string) { return new Intl.NumberFormat('en', { style: 'currency', currency: country === 'Nigeria' ? 'NGN' : country === 'Ghana' ? 'GHS' : country === 'United Kingdom' ? 'GBP' : country === 'France' ? 'EUR' : country === 'Japan' ? 'JPY' : country === 'Brazil' ? 'BRL' : country === 'Canada' ? 'CAD' : 'USD', maximumFractionDigits: 0 }).format(value); }
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+  const [life, setLife] = useState<Life>(() => makeLife());
+  const [tab, setTab] = useState('My life');
+  const [modal, setModal] = useState<'new' | 'settings' | 'saved' | null>(null);
+  const [event, setEvent] = useState<LifeEvent | null>(null);
+  const [saved, setSaved] = useState<Life | null>(null);
+  const [notice, setNotice] = useState('');
+  const [name, setName] = useState(''); const [country, setCountry] = useState('Nigeria'); const [sex, setSex] = useState('Female');
+  const [motion, setMotion] = useState(true); const [contrast, setContrast] = useState(false); const [ready, setReady] = useState(false);
+  useEffect(() => {
+    try { const raw = localStorage.getItem('immersedLife'); if (raw) { const parsed: unknown = JSON.parse(raw); if (isLife(parsed)) { setLife(parsed); setSaved(parsed); } }
+      const prefs = JSON.parse(localStorage.getItem('immersedSettings') ?? '{}'); setMotion(prefs.motion !== false); setContrast(prefs.contrast === true);
+    } catch { setNotice('Your previous save could not be read. A fresh life is ready.'); }
+    setReady(true);
+  }, []);
+  useEffect(() => { if (!ready) return; try { localStorage.setItem('immersedLife', JSON.stringify(life)); setSaved(life); } catch { setNotice('Saving is unavailable in this browser. Keep this page open.'); } }, [life, ready]);
+  useEffect(() => { if (ready) { try { localStorage.setItem('immersedSettings', JSON.stringify({ motion, contrast })); } catch {} } }, [motion, contrast, ready]);
+  const canAct = life.alive && life.actions < 3;
+  function act(title: string, text: string, effects: Partial<Stats>, cost = 0) {
+    if (!canAct || life.money < cost) return;
+    setLife(takeAction(life, title, text, effects, -cost)); setNotice(text);
+  }
+  function newLife() { setLife(makeLife(name, country, sex, true)); setTab('My life'); setModal(null); setNotice('A new story begins.'); }
+  function save() { try { localStorage.setItem('immersedLife', JSON.stringify(life)); setSaved(life); setNotice('Your life is saved on this browser.'); } catch { setNotice('This browser could not save your life.'); } }
+  return <div className={`game-shell ${!motion ? 'no-motion' : ''} ${contrast ? 'high-contrast' : ''}`}>
+    <header className="topbar">
+      <a href="/" className="brand" aria-label="IMMERSED home"><span className="brand-mark"><Leaf size={19}/></span><span>IMMERSED</span></a>
+      <span className="top-tagline">Your life. Your choices. Your story.</span>
+      <div className="header-actions"><span className="saved-status"><span className="status-dot"/> {ready ? 'Autosave on' : 'Your story awaits'}</span><Button variant="ghost" size="icon" title="Settings" aria-label="Settings" onClick={() => setModal('settings')}><Settings2/></Button><div className="profile-avatar">{life.name.split(' ').map(n => n[0]).slice(0,2).join('')}</div></div>
+    </header>
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-person"><div className="portrait"><Baby size={29}/><span className="portrait-star">✦</span></div><strong>{life.name}</strong><span><MapPin size={12}/>{life.country}</span><div className="age-tag">{life.age === 0 ? 'Newborn' : `Age ${life.age}`}<span>·</span>{stage(life.age)}</div></div>
+        <div className="nav-caption">YOUR WORLD</div>
+        <nav aria-label="Game sections">{navigation.map(({label,icon:Icon}) => <Button key={label} variant="ghost" className={`nav-item ${tab === label ? 'active' : ''}`} onClick={() => { setTab(label); setNotice(''); }}><Icon/><span>{label}</span>{tab === label && <ChevronRight className="nav-chevron"/>}{label === 'Relationships' && <span className="nav-count">{life.people.length}</span>}</Button>)}</nav>
+        <div className="sidebar-bottom"><div className="sidebar-divider"/><Button variant="ghost" className="nav-item" onClick={() => setModal('saved')}><Bookmark/><span>Saved life</span></Button><Button variant="ghost" className="nav-item" onClick={() => setModal('settings')}><Settings2/><span>Settings</span></Button><Button variant="outline" className="new-life-side" onClick={() => setModal('new')}><Plus/> New life</Button><p>Every life is a new beginning.</p></div>
+      </aside>
+      <main className="main-content">
+        <div className="page-heading"><div><div className="eyebrow">THE STORY IS YOURS</div><h1>{tab === 'My life' ? 'A life of possibilities.' : tab}</h1></div><Button variant="outline" className="new-life-top" onClick={() => setModal('new')}><Plus/>New life</Button></div>
+        <section className="landscape-banner" aria-label="Your life's chapter"><img src={landscape} width={1536} height={1024} alt="A traveler overlooking a glowing riverside city beneath a tree at dusk"/><div className="landscape-shade"/><div className="banner-content"><div className="chapter-tag"><span className="status-dot"/>CHAPTER {life.age < 4 ? '01' : life.age < 13 ? '02' : life.age < 18 ? '03' : life.age < 40 ? '04' : life.age < 65 ? '05' : '06'} · {stage(life.age).toUpperCase()}</div><h2>{life.age === 0 ? 'Every story starts\nwith a first breath.' : !life.alive ? 'A life, beautifully lived.' : life.age < 13 ? 'Small moments.\nA whole world ahead.' : 'The next chapter\nis yours to write.'}</h2><p>{life.age === 0 ? 'You’re here. And that’s where everything begins.' : 'An endless possibility. Your choice. Your story...'}</p></div><span className="banner-number">{String(life.age).padStart(2,'0')}<small>YEARS OLD</small></span></section>
+        <div className="content-grid">
+          <section className="story-section">
+            <div className="section-heading"><h2>{tab === 'My life' ? 'Your life journal' : tab === 'Relationships' ? 'The people in your story' : tab === 'Education' ? 'A curious mind' : tab === 'Career' ? 'Make your own way' : tab === 'Activities' ? 'The little things matter' : 'What you call your own'}</h2>{tab === 'My life' && <span><BookOpen size={13}/>{life.journal.length} memories</span>}</div>
+            {tab === 'My life' ? <div className="journal"><div className="year-heading"><span className="year-line"/><span>AGE {life.age} {life.age === 0 ? '· A NEW BEGINNING' : `· ${stage(life.age).toUpperCase()}`}</span></div>{[...life.journal].reverse().map((entry,i) => <article className={`journal-entry ${entry.kind === 'birth' ? 'birth-entry' : ''}`} key={`${life.journal.length-i}`}><div className={`journal-icon ${entry.kind}`} >{entry.kind === 'birth' ? <Sparkles size={17}/> : entry.kind === 'choice' ? <ArrowUpRight size={17}/> : entry.kind === 'activity' ? <Activity size={17}/> : <House size={17}/>}</div><div><span className="entry-label">{entry.kind === 'birth' ? 'BIRTH' : entry.kind === 'milestone' ? 'LIFE MOMENT' : entry.kind === 'choice' ? 'A CHOICE MADE' : 'A LITTLE MOMENT'}{entry.age !== life.age ? ` · AGE ${entry.age}` : ''}</span><h3>{entry.title}</h3><p>{entry.text}</p></div></article>)}<div className="journal-end"><span>✧</span><p>{life.alive ? 'The best part of your story is still unwritten.' : 'Every chapter mattered.'}</p></div></div> : <div className="feature-list">
+              {tab === 'Relationships' && life.people.map((person,index) => <article className="person-row" key={person.name}><div className="person-avatar"><Users size={21}/></div><div className="person-details"><h3>{person.name}</h3><p>{person.role} · {person.bond >= 80 ? 'Very close' : person.bond >= 50 ? 'Growing closer' : 'Distant'}</p><progress value={person.bond} max={100}/></div><Button variant="outline" disabled={!canAct} onClick={() => { const updated = takeAction(life, 'Time together', `I spent some time with my ${person.role.toLowerCase()}. We laughed and felt a little closer.`, { happiness: 4 }); updated.people = updated.people.map((p,i) => i === index ? {...p,bond:Math.min(100,p.bond+5)} : p); setLife(updated); setNotice('A little time together makes a difference.'); }}>Spend time</Button></article>)}
+              {tab === 'Education' && <><div className="feature-summary"><GraduationCap/><h3>{life.education}</h3><p>{life.age < 6 ? 'Your first classroom is the world around you.' : 'Every new thing you learn becomes a part of you.'}</p></div><Action title={life.age < 6 ? 'Look at picture books' : 'Study a little harder'} detail="Nurture your curiosity" icon={BookOpen} disabled={!canAct} onClick={() => act('Something new', 'I spent time with a book and discovered something I did not know before.', { smarts: 5, happiness: 1 })}/></>}
+              {tab === 'Career' && <><div className="feature-summary"><BriefcaseBusiness/><h3>{life.job}</h3><p>{life.age < 18 ? 'For now, growing up is your most important job.' : 'A livelihood, a calling, or a little of both.'}</p></div>{life.age >= 18 && life.job === 'Not working' && <Action title="Apply for a shop assistant role" detail="Start earning an income" icon={BriefcaseBusiness} disabled={!canAct} onClick={() => { const updated = takeAction(life,'My first job','I was hired as a shop assistant. A new kind of independence awaits.',{happiness:4}); updated.job = 'Shop assistant'; setLife(updated); }}/>}<Action title="Practice a useful skill" detail="Build tomorrow’s possibilities" icon={Brain} disabled={!canAct} onClick={() => act('Practice makes progress', 'I practiced a new skill. It is not easy yet, but I am making progress.', { smarts: 5 })}/>{life.job !== 'Not working' && life.job !== 'Retired' && <Action title="Give work my best" detail="A little extra effort" icon={BriefcaseBusiness} disabled={!canAct} onClick={() => act('An honest day’s work', 'I put extra care into my work and earned a small bonus.',{smarts:2,happiness:-1},-500)}/>}</>}
+              {tab === 'Activities' && <><Action title={life.age < 3 ? 'Play with my family' : 'Spend time outdoors'} detail="A breath of fresh air" icon={Leaf} disabled={!canAct} onClick={() => act('A brighter afternoon', 'I enjoyed a little fresh air and time with the people around me.', { health: 4, happiness: 5 })}/><Action title="Explore something creative" detail="Let your imagination wander" icon={Sparkles} disabled={!canAct} onClick={() => act('A little imagination', 'I made something just for the joy of it. There is so much to discover.',{happiness:5,smarts:3})}/><Action title="Rest and recharge" detail="Take care of yourself" icon={Heart} disabled={!canAct} onClick={() => act('A moment of rest','I gave myself time to rest. Tomorrow can wait.',{health:6,happiness:2})}/></>}
+              {tab === 'Assets' && <><div className="feature-summary"><House/><h3>{life.assets.length ? 'A place of my own' : 'A simpler beginning'}</h3><p>{life.age < 18 ? 'Home is with your family. Your own chapter will come in time.' : 'Build a life around the things that matter to you.'}</p></div>{life.assets.map(a => <div className="owned-asset" key={a}><House/><span>{a}</span><Check size={16}/></div>)}{life.age >= 18 && !life.assets.includes('My first home') && <Action title="Buy my first home" detail={`${money(50000,life.country)} · A place to put down roots`} icon={House} disabled={!canAct || life.money < 50000} onClick={() => { const updated = takeAction(life,'A home of my own','I bought my first home. Turning the key felt like the start of something new.',{happiness:10},-50000); updated.assets = [...updated.assets,'My first home']; setLife(updated); }}/>}</>}
+              <div className="action-budget">{life.actions}/3 moments spent this year{life.actions >= 3 ? ' · A new year is waiting.' : ''}</div>
+            </div>}
+            <div className="next-year"><div><span className="next-icon"><CalendarDays size={20}/></span><div><h3>{life.alive ? 'What will the next year bring?' : 'Every ending is a beginning.'}</h3><p>{life.alive ? 'A little older. A little more you.' : 'A new life has a whole new story to tell.'}</p></div></div><Button className="age-button" onClick={() => life.alive ? setEvent(annualEvent(life)) : setModal('new')}>{life.alive ? <><Plus size={18}/>Age up<ArrowRight size={16}/></> : <><Plus/>New life</>}</Button></div>
+            {notice && <p className="notice" role="status"><Check size={14}/>{notice}</p>}
+          </section>
+          <aside className="life-overview"><div className="section-heading"><h2>At a glance</h2><Activity size={15}/></div><div className="stats-panel">{statInfo.map(({key,label,icon:Icon}) => <div className={`stat-row stat-${key}`} key={key}><div><span><Icon size={15}/>{label}</span><strong>{life.stats[key]}<small>%</small></strong></div><progress aria-label={label} value={life.stats[key]} max={100}/></div>)}</div><div className="wealth-row"><span><Wallet size={16}/>Net worth</span><strong>{money(life.money,life.country)}</strong></div><div className="family-note"><div className="tiny-heading"><House size={14}/>MY BEGINNING</div><h3>{life.family}</h3><p>{life.family === 'A family under pressure' ? 'Even in uncertain times, a new story can find its way.' : 'There is love in the little things. And a whole life to find it in.'}</p><div className="family-initials"><span>M</span><span>F</span><small>My family</small></div></div><div className="quote"><span>“</span><p>You don’t choose the life you’re born into.<br/><em>You discover it.</em></p><div>✦</div></div><Button variant="ghost" className="save-link" onClick={save}><Save size={14}/>Save my life</Button></aside>
+        </div>
+        <footer className="page-footer"><span>IMMERSED</span><p>An endless possibility. Your choice. Your story.</p><span className="footer-version">A LIFE IN THE MAKING <span>✧</span></span></footer>
+      </main>
     </div>
-  );
+    <Dialog open={modal !== null} onOpenChange={open => { if(!open) setModal(null); }}><DialogContent className="game-dialog">
+      {modal === 'new' && <><div className="dialog-symbol"><Sparkles/></div><DialogTitle>A new life.</DialogTitle><DialogDescription>You don’t choose the life you’re born into. You discover it.{ready && saved ? ' Starting anew will replace the saved life on this browser.' : ''}</DialogDescription><form onSubmit={e => {e.preventDefault();newLife();}}><label className="form-field">Character name <span className="optional">optional</span><div className="name-input"><input aria-label="Character name" value={name} onChange={e=>setName(e.target.value)} placeholder="Let fate choose a name" maxLength={32}/><Button type="button" variant="ghost" size="icon" title="Random name" aria-label="Random name" onClick={()=>setName(randomName(country))}><Shuffle/></Button></div></label><label className="form-field">Birth country<select value={country} onChange={e=>setCountry(e.target.value)}>{countries.map(c=><option key={c}>{c}</option>)}</select></label><label className="form-field">Sex<select value={sex} onChange={e=>setSex(e.target.value)}><option>Female</option><option>Male</option></select></label><Button className="full-action" type="submit">Be born<ArrowRight/></Button></form></>}
+      {modal === 'settings' && <><DialogTitle>Make it feel like you.</DialogTitle><DialogDescription>A little space to set your own pace.</DialogDescription><div className="setting-row"><label htmlFor="motion">Gentle animations</label><Switch id="motion" checked={motion} onCheckedChange={setMotion}/></div><div className="setting-row"><label htmlFor="contrast">Higher text contrast</label><Switch id="contrast" checked={contrast} onCheckedChange={setContrast}/></div><p className="save-description">Your life and preferences are saved on this browser.</p><Button className="full-action" onClick={()=>setModal(null)}>Done<Check/></Button></>}
+      {modal === 'saved' && <><DialogTitle>Your saved story.</DialogTitle><DialogDescription>Pick up right where you left off.</DialogDescription>{saved ? <div className="saved-life"><div className="person-avatar"><Bookmark/></div><div><h3>{saved.name}</h3><p>{saved.country} · Age {saved.age} · {stage(saved.age)}</p></div></div> : <p>No saved life yet.</p>}<Button className="full-action" disabled={!saved} onClick={()=>{if(saved){setLife(saved);setTab('My life');setModal(null);setNotice('Your saved life has been loaded.');}}}><RotateCcw/>Load life</Button></>}
+    </DialogContent></Dialog>
+    <Dialog open={event !== null} onOpenChange={open=>{if(!open)setEvent(null);}}><DialogContent className="game-dialog event-dialog"><div className="event-age">AGE {life.age+1} · A NEW CHAPTER</div><div className="dialog-symbol"><Sparkles/></div><DialogTitle>{event?.title}</DialogTitle><DialogDescription>{event?.text}</DialogDescription><div className="choices">{event?.choices.map(choice=><Button key={choice.label} variant="outline" onClick={()=>{if(event){setLife(chooseYear(life,event,choice));setEvent(null);setTab('My life');setNotice('Your story has moved forward.');}}}>{choice.label}<ArrowUpRight/></Button>)}</div></DialogContent></Dialog>
+  </div>;
 }
+function Action({title,detail,icon:Icon,disabled,onClick}:{title:string;detail:string;icon:typeof Heart;disabled:boolean;onClick:()=>void}) {return <Button variant="ghost" className="activity-action" disabled={disabled} onClick={onClick}><span className="action-icon"><Icon/></span><span><strong>{title}</strong><small>{detail}</small></span><ChevronRight/></Button>;}
