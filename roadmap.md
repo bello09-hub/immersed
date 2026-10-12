@@ -1,4 +1,7 @@
 # IMMERSED
+- [ ] Fix viewport-left rail and dedicated hub views with story return.
+- [ ] Add persistent Small/Medium/Large text sizes and compact mobile spacing.
+- [ ] Persist race completion records immediately and verify improved personal bests through reload.
 - [x] Add a fixed icon rail and labeled overlay drawer without reducing journal space.
 - [x] Add childhood dilemmas, temperament effects, and compatible save upgrades.
 - [x] Add timed sprint/swim challenges with persistent outcomes and medals.
