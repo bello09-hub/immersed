@@ -229,10 +229,10 @@ function advanceKid(life: Life, previousAge: number, enrollment?: 'public'|'priv
     if(skipped && next.age<18) next=ground(next,'I never did the chore I promised.');
     if(next.age===18 && next.kid.savings>0) { const amount=next.kid.savings; next=record({...next,money:next.money+amount,kid:{...next.kid,savings:0}},'My piggy bank opens',`${dollars(amount)} saved through childhood is now mine to use.`); }
   }
-  if(enrollment) next={...next,school:makeSchool(next,enrollment)};
+  if(enrollment) { const school=makeSchool(next,enrollment); const scholarship=enrollment==='private'&&life.stats.smarts>=85; next={...next,school:{...school,scholarship,tuition:enrollment==='private'&&!scholarship?tuitionAt(next.age):0}}; }
   if(next.school && next.age<18 && (enrollment || next.age>previousAge)) {
     let school={...next.school,tuition:next.school.type==='private'&&!next.school.scholarship?tuitionAt(next.age):0};
-    if(school.tuition>next.kid.familyFunds){ school=makeSchool(next,'public'); next=record(next,'A change of school','Private tuition exceeded our family budget. I transferred to public school, with new classmates and a fresh start.'); }
+    if(school.tuition>next.kid.familyFunds){ school={...makeSchool(next,'public'),gpa:school.gpa,effort:school.effort,clubs:school.clubs}; next=record(next,'A change of school','Private tuition exceeded our family budget. I transferred to public school, with new classmates and a fresh start.'); }
     next={...next,school,kid:{...next.kid,familyFunds:Math.max(0,next.kid.familyFunds-school.tuition)}};
   }
   if(next.age>=5 && next.age<18 && next.stats.mischief>=75 && !isGrounded(next)) next=ground(next,'My mischief finally caught up with me.');

@@ -1,9 +1,9 @@
 # IMMERSED
-- [ ] Soften surfaces, containers and rail states for mobile.
-- [ ] Add age-six enrollment and a complete school hub.
-- [ ] Add family home, age-tiered chores, parent pitches and discipline.
-- [ ] Add kid shop, inventory, sports gear and protected savings.
-- [ ] Add age-gated World menu and verify save compatibility and gameplay.
+- [x] Soften surfaces, containers and rail states for mobile.
+- [x] Add age-six enrollment and a complete school hub.
+- [x] Add family home, age-tiered chores, parent pitches and discipline.
+- [x] Add kid shop, inventory, sports gear and protected savings.
+- [x] Add age-gated World menu and verify save compatibility and gameplay.
 - [x] Fix viewport-left rail and dedicated hub views with story return.
 - [x] Add persistent Small/Medium/Large text sizes and compact mobile spacing.
 - [x] Persist race completion records immediately and verify improved personal bests through reload.
