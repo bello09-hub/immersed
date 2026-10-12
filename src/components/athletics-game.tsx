@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { RACE_DURATION, RACE_TARGET, raceScore, type Sport, type Stats } from '@/lib/life-engine';
 
-export function AthleticsGame({ sport, personalBest, stats, training, textSize, onComplete, onFinish }: { sport: Sport; personalBest: number | undefined; stats: Stats; training: boolean; textSize: string; onComplete: (taps: number, time: number) => void; onFinish: () => void }) {
+export function AthleticsGame({ sport, gear = 1, personalBest, stats, training, textSize, onComplete, onFinish }: { sport: Sport; gear?: number; personalBest: number | undefined; stats: Stats; training: boolean; textSize: string; onComplete: (taps: number, time: number) => void; onFinish: () => void }) {
   const [initialStats] = useState(stats);
   const [initialBest] = useState(personalBest);
   const committed = useRef(false);
@@ -33,7 +33,7 @@ export function AthleticsGame({ sport, personalBest, stats, training, textSize, 
   function start() { deadline.current = performance.now() + RACE_DURATION; setPhase('racing'); }
   function tap() {
     if (phase !== 'racing' || performance.now() >= deadline.current) return;
-    tapCount.current += 1;
+    tapCount.current += gear;
     setTaps(tapCount.current);
     if (tapCount.current >= RACE_TARGET) {
       const time = RACE_DURATION - (deadline.current - performance.now());
@@ -45,7 +45,7 @@ export function AthleticsGame({ sport, personalBest, stats, training, textSize, 
     <DialogTitle>{phase === 'result' ? won ? 'Gold medal!' : 'A brave effort.' : sport === 'sprint' ? 'On your marks.' : 'Into the water.'}</DialogTitle>
     <DialogDescription id="race-description">{phase === 'ready' ? `Five seconds. ${RACE_TARGET} ${sport === 'sprint' ? 'strides' : 'strokes'}. Your rivals are ready.` : phase === 'racing' ? 'Your classmates are cheering!' : won ? 'You beat your rivals. Your teacher is beaming.' : 'Your rivals got there first. There is always next time.'}</DialogDescription>
     <div className="race-clock" aria-live={phase === 'result' ? 'polite' : 'off'}>{phase === 'result' ? <Trophy/> : <span>{(remaining / 1000).toFixed(1)}<small>SECONDS</small></span>}</div>
-    <div className="race-lanes"><div><span>You <strong>{taps} {sport === 'sprint' ? 'strides' : 'strokes'}</strong></span><progress aria-label="Your race meter" value={raceScore(taps)} max={100}/></div><div className="rival-lane"><span>Rivals<Flag size={14}/></span><progress aria-label="Rivals race meter" value={phase === 'result' ? 100 : (RACE_DURATION - remaining) / RACE_DURATION * 100} max={100}/></div></div>
+    <div className="race-lanes"><div><span>You <strong>{Math.floor(taps)} {sport === 'sprint' ? 'strides' : 'strokes'}</strong></span><progress aria-label="Your race meter" value={raceScore(taps)} max={100}/></div><div className="rival-lane"><span>Rivals<Flag size={14}/></span><progress aria-label="Rivals race meter" value={phase === 'result' ? 100 : (RACE_DURATION - remaining) / RACE_DURATION * 100} max={100}/></div></div>
     {phase === 'result' && <dl className="race-results"><div><dt>Completion time</dt><dd>{completion === null ? 'Not finished · 5.00s round' : `${(completion / 1000).toFixed(2)}s`}</dd></div><div><dt>Personal best</dt><dd>{completion !== null ? `${(Math.min(initialBest ?? completion, completion) / 1000).toFixed(2)}s${initialBest === undefined || completion < initialBest ? ' · NEW!' : ''}` : initialBest !== undefined ? `${(initialBest / 1000).toFixed(2)}s` : 'No completed round yet'}</dd></div><div><dt>Health gain</dt><dd>+{Math.min(won ? 3 : 1, 100 - initialStats.health)}</dd></div><div><dt>Toughness gain</dt><dd>+{Math.min(won ? 5 : 2, 100 - initialStats.toughness)}</dd></div>{training && <div><dt>Training progress</dt><dd>+5</dd></div>}</dl>}
     {phase === 'ready' ? <Button className="full-action" onClick={start}>Start race<Icon/></Button> : phase === 'racing' ? <Button className="tap-race-button" aria-label={sport === 'sprint' ? 'Run' : 'Swim'} onPointerDown={e => { if(e.button === 0) { e.preventDefault(); tap(); } }} onClick={e => { if(e.detail === 0) tap(); }}><Icon size={32}/>{sport === 'sprint' ? 'RUN!' : 'SWIM!'}</Button> : <Button className="full-action" onClick={onFinish}>Back to my story<Flag/></Button>}
   </DialogContent></Dialog>;
