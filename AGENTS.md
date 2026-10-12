@@ -20,3 +20,6 @@
 - Keep race timing and input in a dedicated athletics overlay using monotonic deadlines; commit each completed result once immediately so leaving the results screen cannot lose records.
 - Share text-size controls and CSS reading-size variables across opening screens, hubs, and portaled dialogs so saved preferences apply consistently.
 - Store shared annual training usage, per-sport progress, and per-sport completion bests in the serializable life state; keep training separate from the general activity budget and reset usage only when age advances.
+- Keep school, family budgets, chores, discipline and kid inventory in the pure life engine; normalize missing childhood state when loading older saves so existing stories survive.
+- Render childhood hubs through a shared presentation module; enrollment is an age-six engine choice, not a page-load side effect.
+- Use deterministic country-aware school and classmate names so reloading a save cannot rename its school.
