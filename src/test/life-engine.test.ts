@@ -82,11 +82,13 @@ describe('IMMERSED life simulation', () => {
   it('upgrades legacy saves without losing their story', () => {
     const life = makeLife();
     const { creativity, mischief, toughness, ...oldStats } = life.stats;
-    const legacy = { ...life, stats: oldStats };
+    const { training, ...oldLife } = life;
+    const legacy = { ...oldLife, stats: oldStats };
     expect(isLife(legacy)).toBe(true);
     if (!isLife(legacy)) throw new Error('Invalid legacy save');
     const upgraded = normalizeLife(legacy);
     expect(upgraded.stats).toEqual(life.stats);
+    expect(upgraded.training).toEqual(life.training);
     expect(upgraded.journal).toEqual(life.journal);
   });
   it('awards medals and praise only at the race threshold, with funny losses', () => {
