@@ -214,7 +214,7 @@ export function schoolName(life: Life, type: 'public' | 'private') {
   return `${list[n%list.length]} ${type==='private' ? ['Academy','Preparatory School','College'][n%3] : ['Community School','Public School','Primary School'][n%3]}`;
 }
 function makeSchool(life: Life, type: 'public'|'private'): School {
-  const list=names[life.country] ?? names.Nigeria ?? []; const offset=seed(life.name)%list.length;
+  const list=names[life.country] ?? names['Nigeria'] ?? []; const offset=seed(life.name)%list.length;
   return { name:schoolName(life,type),type,scholarship:type==='private'&&life.stats.smarts>=85,tuition:type==='private'&&life.stats.smarts<85?tuitionAt(life.age):0,gpa:Math.min(4,2+life.stats.smarts/60),classmates:Array.from({length:3},(_,i)=>({name:list[(offset+i)%list.length]??'Alex',role:'Classmate',bond:40+i*10})),clubs:[],effort:'balanced' };
 }
 function record(life: Life,title:string,text:string): Life { return {...life,journal:[...life.journal,{age:life.age,title,text,kind:'activity'}]}; }
