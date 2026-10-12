@@ -1,4 +1,8 @@
 # IMMERSED
+- [ ] Add a fixed icon rail and labeled overlay drawer without reducing journal space.
+- [ ] Add childhood dilemmas, temperament effects, and compatible save upgrades.
+- [ ] Add timed sprint/swim challenges with persistent outcomes and medals.
+- [ ] Verify opening, childhood, athletics, save/load, and mobile layout.
 - [x] Restore the two-tap opening, load/start/settings menu, and full-screen creation/settings.
 - [x] Rebuild a text-first yearly loop with a chronological record of choices and reachable age-up controls.
 - [x] Test opening, creation, choices, save/load, and settings at phone sizes.
