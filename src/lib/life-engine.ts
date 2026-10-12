@@ -170,7 +170,7 @@ export function resolveAthletics(life: Life, sport: Sport, taps: number): Life {
 }
 // Version 1 saves from before temperament stats receive defaults, not a reset.
 export function normalizeLife(life: Life): Life {
-  return { ...life, stats: { creativity: 40, mischief: 20, toughness: 35, ...life.stats } };
+  return { ...life, stats: { ...life.stats, creativity: life.stats.creativity ?? 40, mischief: life.stats.mischief ?? 20, toughness: life.stats.toughness ?? 35 } };
 }
 export function isLife(value: unknown): value is Life {
   if (!value || typeof value !== 'object') return false;
