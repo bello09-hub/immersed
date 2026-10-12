@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { RACE_DURATION, RACE_TARGET, raceScore, type Sport, type Stats } from '@/lib/life-engine';
 
-export function AthleticsGame({ sport, personalBest, stats, training, onFinish }: { sport: Sport; personalBest?: number; stats: Stats; training: boolean; onFinish: (taps: number, time: number) => void }) {
+export function AthleticsGame({ sport, personalBest, stats, training, onFinish }: { sport: Sport; personalBest: number | undefined; stats: Stats; training: boolean; onFinish: (taps: number, time: number) => void }) {
   const [phase, setPhase] = useState<'ready' | 'racing' | 'result'>('ready');
   const [remaining, setRemaining] = useState(RACE_DURATION);
   const [taps, setTaps] = useState(0);
