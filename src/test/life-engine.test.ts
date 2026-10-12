@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeLife, annualEvent, chooseYear, takeAction, isLife, modify, childhoodEvents, normalizeLife, resolveAthletics, raceScore, RACE_TARGET } from '../lib/life-engine';
+import { makeLife, annualEvent, chooseYear, takeAction, isLife, modify, childhoodEvents, normalizeLife, resolveAthletics, raceScore, RACE_TARGET, startTraining, canTrain } from '../lib/life-engine';
 
 describe('IMMERSED life simulation', () => {
   it('creates a valid newborn with family and memories', () => {
@@ -101,5 +101,33 @@ describe('IMMERSED life simulation', () => {
     expect(lost.assets).toHaveLength(0);
     expect(lost.journal.at(-1)?.text).toContain('splashed enthusiastically');
     expect(isLife(won)).toBe(true);
+  });
+  it('shares four training slots between sports and adds exactly five progress per session', () => {
+    let life = { ...makeLife(), age: 6 };
+    life = startTraining(life, 'sprint');
+    life = startTraining(life, 'swim');
+    life = startTraining(life, 'sprint');
+    life = startTraining(life, 'swim');
+    expect(life.training.sessions).toBe(4);
+    expect(life.training.progress).toEqual({ sprint: 10, swim: 10 });
+    expect(life.actions).toBe(0);
+    expect(canTrain(life)).toBe(false);
+    expect(startTraining(life, 'swim')).toBe(life);
+    const event = annualEvent(life);
+    const choice = event.choices[0];
+    if (!choice) throw new Error('Missing event choice');
+    const next = chooseYear(life, event, choice);
+    expect(next.training.sessions).toBe(0);
+    expect(next.training.progress).toEqual(life.training.progress);
+    expect(canTrain(next)).toBe(true);
+    expect(canTrain(makeLife())).toBe(false);
+  });
+  it('keeps separate personal bests and never replaces a best with a slower round or a failure', () => {
+    let life = resolveAthletics(makeLife(), 'sprint', RACE_TARGET, 2300);
+    life = resolveAthletics(life, 'sprint', RACE_TARGET, 3000);
+    life = resolveAthletics(life, 'swim', RACE_TARGET, 3500);
+    life = resolveAthletics(life, 'sprint', 3, 5000);
+    expect(life.training.personalBests).toEqual({ sprint: 2300, swim: 3500 });
+    expect(normalizeLife(JSON.parse(JSON.stringify(life))).training).toEqual(life.training);
   });
 });

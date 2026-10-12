@@ -18,3 +18,4 @@
 - Keep resumable age-tagged childhood dilemmas and athletics reward resolution in the pure life engine; normalize legacy saves on load so new stats never erase existing stories.
 - Present secondary life panels in a shared left overlay drawer, and keep the narrative mounted behind it so navigation does not replace the active story.
 - Keep race timing and input in a dedicated athletics overlay using monotonic deadlines; resolve rewards only when the completed result returns to the journal.
+- Store shared annual training usage, per-sport progress, and per-sport completion bests in the serializable life state; keep training separate from the general activity budget and reset usage only when age advances.
