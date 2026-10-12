@@ -5,6 +5,7 @@ export type Life = {
   version: 1; name: string; country: string; sex: string; age: number; family: string;
   stats: Stats; journal: Entry[]; people: Person[]; money: number; job: string;
   education: string; assets: string[]; actions: number; alive: boolean;
+  training: { sessions: number; progress: Record<Sport, number>; personalBests: Partial<Record<Sport, number>> };
 };
 export type Sport = 'sprint' | 'swim';
 export type Choice = { label: string; outcome: string; effects: Partial<Stats>; money?: number; education?: string; job?: string; person?: Person; familyBond?: number; athletic?: Sport };
@@ -28,6 +29,7 @@ export function makeLife(name = 'Amara Eze', country = 'Nigeria', sex = 'Female'
     version: 1, name: name.trim() || randomName(country), country, sex, age: 0, family,
     stats: { happiness: 87, health: 96, smarts: 68, looks: 74, creativity: 40, mischief: 20, toughness: 35 },
     money: 0, job: 'Not working', education: 'Not enrolled', assets: [], actions: 0, alive: true,
+    training: { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} },
     people: [{ name: 'Mother', role: 'Mother', bond: 92 }, { name: 'Father', role: 'Father', bond: 86 }],
     journal: [
       { age: 0, title: 'Hello, world.', text: `I was born ${sex === 'Female' ? 'a girl' : 'a boy'} in ${country}. A whole world of possibilities is waiting for me. For now, it begins with a first breath.`, kind: 'birth' },
@@ -150,7 +152,7 @@ export function chooseYear(life: Life, event: LifeEvent, choice: Choice): Life {
   const stats = modify(life, effects);
   const alive = age < 90 && stats.health > 5;
   const people = life.people.map(p => p.role === 'Mother' || p.role === 'Father' ? { ...p, bond: Math.max(0, Math.min(100, p.bond + (choice.familyBond ?? 0))) } : p);
-  return { ...life, age, actions: advanced ? 0 : life.actions, alive, stats, job, education: choice.education ?? life.education,
+  return { ...life, age, actions: advanced ? 0 : life.actions, training: { ...life.training, sessions: advanced ? 0 : life.training.sessions }, alive, stats, job, education: choice.education ?? life.education,
     money: Math.max(0, life.money + (advanced ? Math.round(salary * .35) : 0) + (choice.money ?? 0)),
     people: choice.person && !people.some(p => p.name === choice.person?.name) ? [...people, choice.person] : people,
     journal: [...life.journal, { age, title: event.title, choice: choice.label, text: choice.outcome, kind: 'choice' }, ...(!alive ? [{ age, title: 'A life remembered', text: 'My story has come to its end. The people I loved, the choices I made, and the little moments in between became a life that was entirely mine.', kind: 'milestone' as const }] : [])],
@@ -161,16 +163,26 @@ export function takeAction(life: Life, title: string, text: string, effects: Par
 }
 export const RACE_DURATION = 5000;
 export const RACE_TARGET = 24;
+export const TRAINING_LIMIT = 4;
+export function canTrain(life: Life) { return life.alive && life.age >= 5 && life.training.sessions < TRAINING_LIMIT; }
+export function startTraining(life: Life, sport: Sport): Life {
+  if (!canTrain(life)) return life;
+  return { ...life, training: { ...life.training, sessions: life.training.sessions + 1, progress: { ...life.training.progress, [sport]: life.training.progress[sport] + 5 } }, journal: [...life.journal, { age: life.age, title: sport === 'sprint' ? 'Sprint training' : 'Swimming practice', text: `I trained ${sport === 'sprint' ? 'on the track' : 'in the pool'}. My ${sport} progress grew by 5. Training session ${life.training.sessions + 1} of 4 this year.`, kind: 'activity' }] };
+}
 export function raceScore(taps: number) { return Math.min(100, Math.max(0, Math.floor(taps)) / RACE_TARGET * 100); }
-export function resolveAthletics(life: Life, sport: Sport, taps: number): Life {
+export function resolveAthletics(life: Life, sport: Sport, taps: number, completionMs = RACE_DURATION): Life {
   const won = raceScore(taps) >= 100;
+  const time = Math.max(1, Math.min(RACE_DURATION, completionMs));
+  const previous = life.training.personalBests[sport];
+  const personalBests = won ? { ...life.training.personalBests, [sport]: Math.min(previous ?? time, time) } : life.training.personalBests;
   const medal = sport === 'sprint' ? 'Sprint gold medal' : 'Swimming gold medal';
   const text = won ? `I ${sport === 'sprint' ? 'sprinted' : 'swam'} past my rivals and won a gold medal! My teacher praised my determination, and my family cheered. I felt stronger than ever.` : sport === 'sprint' ? 'I ran with all my heart, but my legs apparently had other appointments. I finished behind my rivals. My teacher smiled: “There is always next time.”' : 'I splashed enthusiastically while my rivals actually moved forward. No medal this time, but my teacher praised me for trying. The pool and I will meet again.';
-  return { ...life, stats: modify(life, won ? { health: 3, toughness: 5, happiness: 5 } : { health: 1, toughness: 2 }), assets: won ? [...life.assets, medal] : life.assets, journal: [...life.journal, { age: life.age, title: won ? 'A little champion' : 'Not quite a personal best', text, kind: 'activity' }] };
+  const summary = won ? ` Completion time: ${(time / 1000).toFixed(2)}s. Personal best: ${((personalBests[sport] ?? time) / 1000).toFixed(2)}s.` : ' The five-second round ended before I finished the distance.';
+  return { ...life, training: { ...life.training, personalBests }, stats: modify(life, won ? { health: 3, toughness: 5, happiness: 5 } : { health: 1, toughness: 2 }), assets: won ? [...life.assets, medal] : life.assets, journal: [...life.journal, { age: life.age, title: won ? 'A little champion' : 'Not quite a personal best', text: text + summary, kind: 'activity' }] };
 }
 // Version 1 saves from before temperament stats receive defaults, not a reset.
 export function normalizeLife(life: Life): Life {
-  return { ...life, stats: { ...life.stats, creativity: life.stats.creativity ?? 40, mischief: life.stats.mischief ?? 20, toughness: life.stats.toughness ?? 35 } };
+  return { ...life, training: life.training ?? { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} }, stats: { ...life.stats, creativity: life.stats.creativity ?? 40, mischief: life.stats.mischief ?? 20, toughness: life.stats.toughness ?? 35 } };
 }
 export function isLife(value: unknown): value is Life {
   if (!value || typeof value !== 'object') return false;
