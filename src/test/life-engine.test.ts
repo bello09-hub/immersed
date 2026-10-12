@@ -132,4 +132,16 @@ describe('IMMERSED life simulation', () => {
     expect(life.training.personalBests).toEqual({ sprint: 2300, swim: 3500 });
     expect(normalizeLife(JSON.parse(JSON.stringify(life))).training).toEqual(life.training);
   });
+  it('stores the latest completion and gains independently from the best', () => {
+    let life = resolveAthletics(makeLife(), 'sprint', RACE_TARGET, 2300);
+    expect(life.training.lastResults?.sprint).toEqual({ completionMs: 2300, healthGain: 3, toughnessGain: 5 });
+    life = resolveAthletics(life, 'sprint', RACE_TARGET, 1900);
+    expect(life.training.personalBests.sprint).toBe(1900);
+    life = resolveAthletics(life, 'swim', RACE_TARGET, 3100);
+    life = normalizeLife(JSON.parse(JSON.stringify(life)));
+    expect(life.training.lastResults?.swim?.completionMs).toBe(3100);
+    life = resolveAthletics(life, 'sprint', 2, 5000);
+    expect(life.training.lastResults?.sprint?.completionMs).toBeNull();
+    expect(life.training.personalBests.sprint).toBe(1900);
+  });
 });
