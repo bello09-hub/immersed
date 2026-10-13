@@ -3,7 +3,7 @@ import { House, GraduationCap, ShoppingBag, Lock, Coins, Heart, Globe, BookOpen,
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { HomeTier, PrefectPanel, RelationshipsHub } from '@/components/social-hub';
-import { academicEffort, availableChores, befriendClassmate, buyItem, countries, depositSavings, dollars, doChore, isGrounded, joinClub, parentPitch, pitches, privateEligibility, schoolName, shopItems, skipChore, tuitionAt, worldAction, type Life } from '@/lib/life-engine';
+import { academicEffort, availableChores, befriendClassmate, buyItem, countries, formatMoney, depositSavings, dollars, doChore, isGrounded, joinClub, parentPitch, pitches, privateEligibility, schoolName, shopItems, skipChore, tuitionAt, worldAction, type Life } from '@/lib/life-engine';
 
 type Props={life:Life;update:(life:Life)=>void;tab:string;textSize:string;openPanel:(tab:string)=>void};
 export function EnrollmentOptions({life,onEnroll}:{life:Life;onEnroll:(type:'public'|'private')=>void}) {

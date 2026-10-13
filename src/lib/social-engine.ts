@@ -16,7 +16,7 @@ export function socialOf(life: Life): SocialState {
   if (life.social) return life.social;
   const list = firstNames[life.country] ?? firstNames['United States'] ?? ['Sam'];
   const base = seed(life.name + life.country);
-  const peers: Peer[] = Array.from({ length: 6 }, (_, i) => {
+  const peers: Peer[] = Array.from({ length: 6 }, (_, i): Peer => {
     const n = (base >> (i % 8)) + i * 7;
     return { name: list[n % list.length] ?? 'Sam', age: life.age, origin: i < 4 ? 'school' : 'neighborhood', bond: 20 + (n % 30), popular: i === 1 || i === 4, status: 'peer' };
   }).filter((p, i, all) => all.findIndex(q => q.name === p.name) === i);
