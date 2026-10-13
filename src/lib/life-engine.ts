@@ -6,9 +6,17 @@ export type Life = {
   stats: Stats; journal: Entry[]; people: Person[]; money: number; job: string;
   kid: KidState; school: School | null;
   education: string; assets: string[]; actions: number; alive: boolean;
+  social?: SocialState; birthYear?: number; childhoodPlan?: string[];
   training: { sessions: number; progress: Record<Sport, number>; personalBests: Partial<Record<Sport, number>>; lastResults?: Partial<Record<Sport, { completionMs: number | null; healthGain: number; toughnessGain: number }>> };
 };
 export type Sport = 'sprint' | 'swim';
+export type PeerStatus = 'peer' | 'friend' | 'best' | 'partner';
+export type Peer = { name: string; age: number; origin: 'school' | 'neighborhood'; bond: number; popular: boolean; status: PeerStatus };
+export type Prefect = { role: string | null; popularity: number; respect: number; lastElection: number; lastDuty: number };
+export type SocialState = { peers: Peer[]; prefect: Prefect; birthdayAge: number; pendingCleanup: boolean; permissionAsked: boolean };
+const currencies: Record<string, string> = { Nigeria: '₦', 'United States': '$', Canada: '$', 'United Kingdom': '£', France: '€', Ghana: 'GHS ', Japan: '¥', Brazil: 'R$' };
+export function currencySymbol(country: string) { return currencies[country] ?? '$'; }
+export function formatMoney(value: number, country: string) { return `${value < 0 ? '−' : ''}${currencySymbol(country)}${Math.abs(Math.round(value)).toLocaleString('en-US')}`; }
 export type Choice = { label: string; outcome: string; effects: Partial<Stats>; money?: number; education?: string; job?: string; person?: Person; familyBond?: number; athletic?: Sport; schoolType?: 'public' | 'private' };
 export type LifeEvent = { title: string; text: string; choices: Choice[]; age?: number };
 export const countries = ['Nigeria', 'France', 'United Kingdom', 'United States', 'Canada', 'Ghana', 'Japan', 'Brazil'];
@@ -30,7 +38,8 @@ export function makeLife(name = 'Amara Eze', country = 'Nigeria', sex = 'Female'
     version: 1, name: name.trim() || randomName(country), country, sex, age: 0, family,
     stats: { happiness: 87, health: 96, smarts: 68, looks: 74, creativity: 40, mischief: 20, toughness: 35 },
     money: 0, job: 'Not working', education: 'Not enrolled', assets: [], actions: 0, alive: true,
-    kid: makeKid(family, country), school: null,
+    kid: makeKid(family, country), school: null, birthYear: new Date().getFullYear(),
+    ...(random ? { childhoodPlan: planChildhood() } : {}),
     training: { sessions: 0, progress: { sprint: 0, swim: 0 }, personalBests: {} },
     people: [{ name: 'Mother', role: 'Mother', bond: 92 }, { name: 'Father', role: 'Father', bond: 86 }],
     journal: [
@@ -86,8 +95,75 @@ export const childhoodEvents: LifeEvent[] = [
     { label: 'Cheer for my classmates', outcome: 'I cheered until my voice went squeaky. My teacher said being a good teammate matters, too.', effects: { happiness: 4 }, familyBond: 1 },
   ] },
 ];
+// Extra infant/toddler moments; random lives draw a fresh mix from these plus the core list.
+export const childhoodPool: LifeEvent[] = [
+  { age: 0, title: 'The 3 a.m. concert', text: 'It is the middle of the night. Everyone is asleep. Your lungs feel extraordinarily powerful.', choices: [
+    { label: 'Perform a full-volume solo', outcome: 'I sang the song of my people at 3 a.m. Dada walked laps of the hallway until sunrise.', effects: { mischief: 4, health: 1 }, familyBond: -1 },
+    { label: 'Suck my thumb and drift off', outcome: 'I found my thumb, the greatest invention of all time, and slept like a tiny king.', effects: { happiness: 3, health: 2 }, familyBond: 2 },
+  ] },
+  { age: 0, title: 'Peekaboo philosophy', text: 'Mama hides behind her hands. Is she gone forever? Is she still there? This is the deepest question you have ever faced.', choices: [
+    { label: 'Giggle uncontrollably', outcome: 'Every reappearance was the funniest thing in history. We played for forty minutes.', effects: { happiness: 5 }, familyBond: 3 },
+    { label: 'Grab her hands and investigate', outcome: 'I pulled her hands away to check the mechanism. Science demands answers.', effects: { smarts: 4, creativity: 1 } },
+  ] },
+  { age: 1, title: 'The great toy squabble', text: 'Your cousin is holding YOUR rattle. Technically it was never yours. Emotionally, it always was.', choices: [
+    { label: 'Snatch it back', outcome: 'I reclaimed the rattle with lightning hands. My cousin wailed. I was told about sharing, at length.', effects: { mischief: 5, toughness: 2 }, familyBond: -1 },
+    { label: 'Offer my teddy in exchange', outcome: 'I offered teddy as a trade. Diplomacy works. Everyone was impressed.', effects: { smarts: 3, happiness: 2 }, familyBond: 3 },
+    { label: 'Cry until it returns', outcome: 'I cried with such sincerity that the rattle came home within seconds.', effects: { mischief: 2, happiness: 1 } },
+  ] },
+  { age: 1, title: 'Bathtime splash zone', text: 'Warm water, rubber duck, and a parent kneeling dangerously close to the edge of the tub.', choices: [
+    { label: 'Splash with both hands', outcome: 'I turned bathtime into a wave pool. Papa needed a towel more than I did.', effects: { happiness: 4, mischief: 3 } },
+    { label: 'Hold the duck like a treasure', outcome: 'I held my duck carefully and babbled our secret plans to it.', effects: { creativity: 3, happiness: 2 }, familyBond: 1 },
+  ] },
+  { age: 2, title: 'Supermarket meltdown', text: 'A bright packet of sweets at exactly your eye level. Your parent says "not today". The floor looks comfortable.', choices: [
+    { label: 'Throw a legendary tantrum', outcome: 'I lay on the supermarket floor and wailed. Strangers stared. No sweets. Long silent ride home.', effects: { mischief: 6, happiness: -2 }, familyBond: -3 },
+    { label: 'Ask very nicely', outcome: 'I said "pwease" with my biggest eyes. One small sweet appeared. Manners are magic.', effects: { happiness: 3, smarts: 2 }, familyBond: 2 },
+    { label: 'Hide it in the trolley', outcome: 'I sneaked the sweets into the trolley. The cashier found them. Everyone laughed except my parent.', effects: { mischief: 4, creativity: 2 } },
+  ] },
+  { age: 2, title: 'The forbidden cupboard', text: 'The kitchen cupboard that clicks. Pots, pans, and a mysterious drawer of lids. You have finally reached the handle.', choices: [
+    { label: 'Drum on every pot', outcome: 'I formed a one-toddler percussion band. The neighbors heard my debut album.', effects: { creativity: 5, mischief: 3 } },
+    { label: 'Stack lids into a tower', outcome: 'I built a wobbly tower of lids. It fell, I rebuilt it. Engineering runs in my blood.', effects: { smarts: 4, toughness: 1 } },
+  ] },
+  { age: 3, title: 'Potty training showdown', text: 'A tiny plastic throne awaits. Your family is cheering you on like it is a cup final.', choices: [
+    { label: 'Use it like a champion', outcome: 'Success! A sticker chart was created in my honor. I am basically a grown-up.', effects: { smarts: 3, happiness: 3 }, familyBond: 3 },
+    { label: 'Wear it as a hat', outcome: 'I wore the potty as a crown. It was clean, luckily. The photos will haunt my teenage years.', effects: { mischief: 4, creativity: 4 } },
+  ] },
+  { age: 3, title: 'Who drew on the dog?', text: 'The family dog has a marker moustache. You are holding a marker. The evidence is circumstantial.', choices: [
+    { label: 'Confess immediately', outcome: 'I admitted it. My honesty earned a hug, and the dog earned a bath.', effects: { smarts: 2, happiness: 1 }, familyBond: 3 },
+    { label: 'Blame the cat', outcome: 'I blamed the cat. We do not have a cat. Nobody believed me.', effects: { mischief: 5, creativity: 2 }, familyBond: -2 },
+  ] },
+  { age: 4, title: 'The swing-set challenge', text: 'An older kid says nobody your size can swing all the way up high. Your legs disagree.', choices: [
+    { label: 'Swing as high as I can', outcome: 'I swung so high my tummy did flips. I landed with a scraped knee and a huge grin.', effects: { toughness: 4, health: -1, happiness: 3 } },
+    { label: 'Challenge them to a slide race', outcome: 'I changed the game to slide races and won twice. Strategy beats size.', effects: { smarts: 2, toughness: 2, happiness: 2 } },
+  ] },
+  { age: 4, title: 'Hair salon at home', text: 'Safety scissors. A mirror. A fringe that is, frankly, too long.', choices: [
+    { label: 'Give myself a haircut', outcome: 'I gave myself a bold new look. Mama gasped, then booked an emergency trim.', effects: { creativity: 4, mischief: 4, looks: -3 }, familyBond: -1 },
+    { label: 'Give teddy a haircut instead', outcome: 'Teddy got a stylish trim. Teddy did not complain.', effects: { creativity: 3, happiness: 2 } },
+  ] },
+  { age: 5, title: 'A lost tooth fortune', text: 'Your first wobbly tooth finally pops out at dinner. The Tooth Fairy is rumored to pay well.', choices: [
+    { label: 'Put it under my pillow', outcome: 'I tucked it under my pillow and woke up to a shiny coin. Tooth economics are amazing.', effects: { happiness: 4 }, money: 2 },
+    { label: 'Try to stay awake to catch the fairy', outcome: 'I stayed up waiting with a torch. I fell asleep at 8:04 p.m. The fairy still came.', effects: { mischief: 2, creativity: 3 }, money: 2 },
+  ] },
+  { age: 5, title: 'Show and tell', text: 'Tomorrow is show and tell. You can bring anything. Anything at all.', choices: [
+    { label: 'Bring my favorite book', outcome: 'I read a page aloud to my class. My teacher gave me a gold star.', effects: { smarts: 4, happiness: 2 } },
+    { label: 'Bring a jar of garden worms', outcome: 'I brought worms. Half the class screamed, half wanted to hold them. Legendary.', effects: { mischief: 3, creativity: 3, toughness: 2 } },
+    { label: 'Bring Dada', outcome: 'I brought my father. He did a magic trick and became the most popular person in kindergarten.', effects: { happiness: 4 }, familyBond: 4 },
+  ] },
+];
+const allChildhoodEvents = [...childhoodEvents, ...childhoodPool].sort((a, b) => (a.age ?? 0) - (b.age ?? 0));
+export function planChildhood(rng: () => number = Math.random): string[] {
+  const plan: string[] = [];
+  for (let age = 0; age <= 5; age++) {
+    const options = allChildhoodEvents.filter(e => e.age === age);
+    const must = age === 5 ? options.filter(e => e.choices.some(c => c.athletic)) : [];
+    const rest = options.filter(e => !must.includes(e)).map(e => ({ e, r: rng() })).sort((a, b) => a.r - b.r).map(x => x.e);
+    const count = 1 + Math.floor(rng() * 2);
+    plan.push(...[...must, ...rest].slice(0, Math.max(count, must.length + (age === 5 ? 1 : 0))).map(e => e.title));
+  }
+  return plan;
+}
 export function annualEvent(life: Life): LifeEvent {
-  const childhood = childhoodEvents.find(e => (e.age ?? 0) >= life.age && !life.journal.some(j => j.kind === 'choice' && j.age === e.age && j.title === e.title));
+  const pool = life.childhoodPlan ? allChildhoodEvents.filter(e => life.childhoodPlan?.includes(e.title)) : childhoodEvents;
+  const childhood = pool.find(e => (e.age ?? 0) >= life.age && !life.journal.some(j => j.kind === 'choice' && j.age === e.age && j.title === e.title));
   if (life.age <= 5 && childhood) return childhood;
   const age = life.age + 1;
   if (age === 1) return { title: 'One small step', text: 'The room is full of encouraging voices. Your mother holds out her hands. You wobble to your feet. What do you do?', choices: [
