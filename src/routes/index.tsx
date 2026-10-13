@@ -4,7 +4,7 @@ import { ArrowUpRight, ArrowLeft, ArrowRight, Plus, Sparkles, Heart, Activity, B
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { annualEvent, chooseYear, normalizeLife, resolveAthletics, canTrain, startTraining, countries, isLife, makeLife, randomName, stage, takeAction, gearMultiplier, isGrounded, type Life, type Stats, type LifeEvent, type Sport } from '@/lib/life-engine';
+import { annualEvent, chooseYear, normalizeLife, resolveAthletics, canTrain, startTraining, countries, isLife, makeLife, randomName, stage, takeAction, gearMultiplier, isGrounded, formatMoney, type Life, type Stats, type LifeEvent, type Sport } from '@/lib/life-engine';
 import { OpeningScreens, type Screen } from '@/components/opening-screens';
 import { TextSizeControl, type TextSize } from '@/components/text-size-control';
 import { KidHubs, EnrollmentOptions } from '@/components/kid-hubs';
@@ -25,7 +25,9 @@ const navigation = [
   { label: 'Home', icon: House }, { label: 'Shop', icon: ShoppingBag }, { label: 'World', icon: Globe }, { label: 'Career', icon: BriefcaseBusiness }, { label: 'Activities', icon: Sparkles }, { label: 'Assets', icon: House },
 ];
 const statInfo = [ { key: 'happiness', label: 'Happiness', icon: Smile }, { key: 'health', label: 'Health', icon: Heart }, { key: 'smarts', label: 'Smarts', icon: Brain }, { key: 'looks', label: 'Looks', icon: Sparkles }, { key: 'creativity', label: 'Creativity', icon: Sparkles }, { key: 'mischief', label: 'Mischief', icon: Baby }, { key: 'toughness', label: 'Toughness', icon: Activity } ] as const;
-function money(value: number, country: string) { return new Intl.NumberFormat('en', { style: 'currency', currency: country === 'Nigeria' ? 'NGN' : country === 'Ghana' ? 'GHS' : country === 'United Kingdom' ? 'GBP' : country === 'France' ? 'EUR' : country === 'Japan' ? 'JPY' : country === 'Brazil' ? 'BRL' : country === 'Canada' ? 'CAD' : 'USD', maximumFractionDigits: 0 }).format(value); }
+const money = formatMoney;
+const SLOT_KEY = 'immersedSlots';
+export type Slots = (Life | null)[];
 function Index() {
   const [life, setLife] = useState<Life>(() => makeLife());
   const [tab, setTab] = useState('Profile');
@@ -40,17 +42,24 @@ function Index() {
   const [started, setStarted] = useState(false);
   const [modal, setModal] = useState<'new' | 'settings' | 'saved' | null>(null);
   const [event, setEvent] = useState<LifeEvent | null>(null);
-  const [saved, setSaved] = useState<Life | null>(null);
+  const [slots, setSlots] = useState<Slots>([null, null, null, null]);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const saved = activeSlot !== null ? slots[activeSlot] ?? null : slots.find(Boolean) ?? null;
+  function writeSlot(updated: Life, slot = activeSlot): boolean { if (slot === null) return false; const next = slots.map((l, i) => i === slot ? updated : l); try { localStorage.setItem(SLOT_KEY, JSON.stringify(next)); setSlots(next); return true; } catch { return false; } }
   const [notice, setNotice] = useState('');
   const [name, setName] = useState(''); const [country, setCountry] = useState('Nigeria'); const [sex, setSex] = useState('Female');
   const [motion, setMotion] = useState(true); const [contrast, setContrast] = useState(false); const [ready, setReady] = useState(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem('immersedLife'); if (raw) { const parsed: unknown = JSON.parse(raw); if (isLife(parsed)) { setSaved(normalizeLife(parsed)); } }
+    try { const read = (v: unknown) => isLife(v) ? normalizeLife(v) : null; const rawSlots = localStorage.getItem(SLOT_KEY); let list: Slots = [null, null, null, null];
+      if (rawSlots) { const parsed: unknown = JSON.parse(rawSlots); if (Array.isArray(parsed)) list = [0,1,2,3].map(i => read(parsed[i])); }
+      else { const raw = localStorage.getItem('immersedLife'); if (raw) { list[0] = read(JSON.parse(raw)); if (list[0]) localStorage.setItem(SLOT_KEY, JSON.stringify(list)); } }
+      setSlots(list);
       const prefs = JSON.parse(localStorage.getItem('immersedSettings') ?? '{}'); setMotion(prefs.motion !== false); setContrast(prefs.contrast === true); setTextSize(prefs.textSize === 'medium' || prefs.textSize === 'large' ? prefs.textSize : 'small');
     } catch { setNotice('Your previous save could not be read. A fresh life is ready.'); }
     setReady(true);
   }, []);
-  useEffect(() => { if (!ready || !started) return; try { localStorage.setItem('immersedLife', JSON.stringify(life)); setSaved(life); } catch { setNotice('Saving is unavailable in this browser. Keep this page open.'); } }, [life, ready, started]);
+  useEffect(() => { if (!ready || !started || activeSlot === null) return; if (!writeSlot(life)) setNotice('Saving is unavailable in this browser. Keep this page open.'); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [life, ready, started, activeSlot]);
   useEffect(() => { if (ready) { try { localStorage.setItem('immersedSettings', JSON.stringify({ motion, contrast, textSize })); } catch {} } }, [motion, contrast, textSize, ready]);
   const canAct = life.alive && life.actions < 3;
   const canPlay = canAct && !isGrounded(life);
@@ -58,16 +67,16 @@ function Index() {
     if (!canAct || life.money < cost) return;
     setLife(takeAction(life, title, text, effects, -cost)); setNotice(text);
   }
-  function newLife() { setLife(makeLife(name, country, sex, true)); setStarted(true); setScreen('life'); setDrawer(false); setModal(null); setNotice('A new story begins.'); }
-  function loadLife() { if (!saved) return; setLife(saved); setStarted(true); setScreen('life'); setDrawer(false); setNotice('Your saved life has been loaded.'); }
+  function newLife(slot = activeSlot ?? 0) { setActiveSlot(slot); setLife(makeLife(name, country, sex, true)); setStarted(true); setScreen('life'); setDrawer(false); setModal(null); setNotice('A new story begins.'); }
+  function loadLife(slot: number) { const chosen = slots[slot]; if (!chosen) return; setActiveSlot(slot); setLife(chosen); setStarted(true); setScreen('life'); setDrawer(false); setNotice('Your saved life has been loaded.'); }
   useEffect(() => { if (screen === 'life' && !drawer) { document.getElementById('latest-memory')?.scrollIntoView({ block: 'nearest', behavior: motion ? 'smooth' : 'instant' }); } }, [life.journal.length, screen, drawer, motion]);
-  function save() { try { localStorage.setItem('immersedLife', JSON.stringify(life)); setSaved(life); setNotice('Your life is saved on this browser.'); } catch { setNotice('This browser could not save your life.'); } }
+  function save() { setNotice(writeSlot(life) ? `Saved to Slot ${(activeSlot ?? 0) + 1}.` : 'This browser could not save your life.'); }
   return <div className={`game-shell text-size-${textSize} ${!motion ? 'no-motion' : ''} ${contrast ? 'high-contrast' : ''}`}>
-    {screen !== 'life' ? <OpeningScreens screen={screen} setScreen={setScreen} ready={ready} saved={saved} name={name} setName={setName} country={country} setCountry={setCountry} sex={sex} setSex={setSex} motion={motion} setMotion={setMotion} contrast={contrast} setContrast={setContrast} revealed={revealed} setRevealed={setRevealed} begin={newLife} load={loadLife} notice={notice} textSize={textSize} setTextSize={setTextSize}/> : <div className="text-life">
+    {screen !== 'life' ? <OpeningScreens screen={screen} setScreen={setScreen} ready={ready} saved={saved} slots={slots} activeSlot={activeSlot} setActiveSlot={setActiveSlot} name={name} setName={setName} country={country} setCountry={setCountry} sex={sex} setSex={setSex} motion={motion} setMotion={setMotion} contrast={contrast} setContrast={setContrast} revealed={revealed} setRevealed={setRevealed} begin={() => newLife()} load={loadLife} notice={notice} textSize={textSize} setTextSize={setTextSize}/> : <div className="text-life">
     <header className="topbar">
       <Button variant="ghost" className="brand" aria-label="Main menu" onClick={() => {setScreen('menu');setNotice('');}}><span className="brand-mark"><Leaf size={19}/></span><span>IMMERSED</span></Button>
       <span className="top-tagline">Your life. Your choices. Your story.</span>
-      <div className="header-actions"><span className="saved-status"><span className="status-dot"/> {ready ? 'Autosave on' : 'Your story awaits'}</span><Button variant="ghost" size="icon" title="Settings" aria-label="Settings" onClick={() => setModal('settings')}><Settings2/></Button><div className="profile-avatar">{life.name.split(' ').map(n => n[0]).slice(0,2).join('')}</div></div>
+      <div className="header-actions"><span className="top-money" aria-label="Personal funds"><Wallet size={14}/>{money(life.money, life.country)}</span><span className="saved-status"><span className="status-dot"/> Slot {(activeSlot ?? 0) + 1}</span><Button variant="ghost" size="icon" title="Settings" aria-label="Settings" onClick={() => setModal('settings')}><Settings2/></Button><div className="profile-avatar">{life.name.split(' ').map(n => n[0]).slice(0,2).join('')}</div></div>
     </header>
     <div className="app-layout">
       <nav className="icon-rail" aria-label="Game sections">
@@ -111,7 +120,7 @@ function Index() {
     </div></section>}
     </div>
     </div>}
-    {race && <AthleticsGame sport={race} gear={gearMultiplier(life)} personalBest={life.training.personalBests[race]} stats={life.stats} training={trainingRace} textSize={textSize} onComplete={(taps,time)=>{const updated=resolveAthletics(life,race,taps,time);setLife(updated);try{localStorage.setItem('immersedLife',JSON.stringify(updated));setSaved(updated);}catch{setNotice('This browser could not save your race.');}}} onFinish={()=>{setRace(null);setDrawer(false);setNotice('The race is written in your story.');}}/>}
+    {race && <AthleticsGame sport={race} gear={gearMultiplier(life)} personalBest={life.training.personalBests[race]} stats={life.stats} training={trainingRace} textSize={textSize} onComplete={(taps,time)=>{const updated=resolveAthletics(life,race,taps,time);setLife(updated);if(!writeSlot(updated))setNotice('This browser could not save your race.');}} onFinish={()=>{setRace(null);setDrawer(false);setNotice('The race is written in your story.');}}/>}
     <Dialog open={modal !== null} onOpenChange={open => { if(!open) setModal(null); }}><DialogContent className={`game-dialog text-size-${textSize} ${contrast ? 'high-contrast' : ''}`}>
       {modal === 'new' && <><div className="dialog-symbol"><Sparkles/></div><DialogTitle>A new life.</DialogTitle><DialogDescription>You don’t choose the life you’re born into. You discover it.{ready && saved ? ' Starting anew will replace the saved life on this browser.' : ''}</DialogDescription><form onSubmit={e => {e.preventDefault();newLife();}}><label className="form-field">Character name <span className="optional">optional</span><div className="name-input"><input aria-label="Character name" value={name} onChange={e=>setName(e.target.value)} placeholder="Let fate choose a name" maxLength={32}/><Button type="button" variant="ghost" size="icon" title="Random name" aria-label="Random name" onClick={()=>setName(randomName(country))}><Shuffle/></Button></div></label><label className="form-field">Birth country<select value={country} onChange={e=>setCountry(e.target.value)}>{countries.map(c=><option key={c}>{c}</option>)}</select></label><label className="form-field">Sex<select value={sex} onChange={e=>setSex(e.target.value)}><option>Female</option><option>Male</option></select></label><Button className="full-action" type="submit">Be born<ArrowRight/></Button></form></>}
       {modal === 'settings' && <><DialogTitle>Make it feel like you.</DialogTitle><DialogDescription>A little space to set your own pace.</DialogDescription><TextSizeControl value={textSize} onChange={setTextSize}/><div className="setting-row"><label htmlFor="motion">Gentle animations</label><Switch id="motion" checked={motion} onCheckedChange={setMotion}/></div><div className="setting-row"><label htmlFor="contrast">Higher text contrast</label><Switch id="contrast" checked={contrast} onCheckedChange={setContrast}/></div><p className="save-description">Your life and preferences are saved on this browser.</p><Button className="full-action" onClick={()=>setModal(null)}>Done<Check/></Button></>}
