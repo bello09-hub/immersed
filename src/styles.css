@@ -115,3 +115,20 @@
 .savings-form{display:flex;align-items:end;gap:8px}.savings-form label{flex:1;min-width:0;font-size:12px;color:var(--muted-foreground)}.savings-form input{display:block;width:100%;background:var(--card);border:1px solid var(--soft-line);border-radius:14px;padding:10px;color:var(--foreground);margin-top:8px}.savings-form button{height:42px}.choices button small{display:block;font-size:11px;color:var(--muted-foreground);margin-top:4px}.enrollment-options{margin-top:0}.enrollment-options .budget-line{margin:0}.event-dialog:has(.enrollment-options){max-width:560px}
 @media(min-width:700px){.shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-scene{max-height:280px}.hub-content .parent-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:380px){.parent-card,.shop-item,.school-option{padding:14px}.hub-facts{gap:10px}.savings-form{flex-wrap:wrap}.savings-form label{flex-basis:100%}}
+/* Save slots, funds, social sheets, home tiers */
+.top-money{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--accent);border:1px solid var(--gold-line);color:var(--primary);font-size:12px;font-weight:600;white-space:nowrap}
+.slot-list{display:grid;gap:10px;margin-top:18px}
+.save-slot{height:auto!important;display:grid!important;justify-items:start;text-align:left;gap:4px;padding:16px 18px!important;border-radius:1.25rem!important;white-space:normal;background:var(--card)}
+.save-slot strong{font-family:var(--font-display);font-size:20px;font-weight:400}.save-slot small{font-size:12px;color:var(--muted-foreground)}.slot-number{font-size:10px;letter-spacing:.18em;color:var(--primary)}
+.people-list{display:grid;gap:8px;margin-bottom:6px}
+.person-tap{height:auto!important;width:100%;justify-content:flex-start!important;gap:12px;padding:12px 14px!important;border-radius:1.25rem!important;background:var(--card);border:1px solid var(--border);text-align:left;white-space:normal}
+.person-tap .person-details{display:grid;gap:4px}.person-tap strong{font-size:15px;font-weight:500}.person-tap small{font-size:12px;color:var(--muted-foreground)}.person-tap progress{height:3px;width:100%;max-width:160px}
+.person-static{padding:10px 14px;border-radius:1.25rem;border:1px dashed var(--border);display:grid;gap:2px}.person-static small{font-size:12px;color:var(--muted-foreground)}
+.sheet-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.sheet-actions>button{height:auto;min-height:46px;white-space:normal;border-radius:1rem;gap:8px}.sheet-actions>.locked-note{grid-column:1/-1}
+.duty-card{margin:12px 0;padding:16px;border-radius:1.5rem;background:var(--card);border:1px solid var(--gold-line);box-shadow:0 0 24px -12px var(--primary)}.duty-card>svg{color:var(--primary)}.duty-card h3{font-family:var(--font-display);font-size:20px;font-weight:400;margin:6px 0}.duty-card p{font-size:13px;color:var(--muted-foreground);margin-bottom:8px}
+.home-tier{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:center;padding:18px;border-radius:1.5rem;background:linear-gradient(145deg,var(--card),var(--accent));border:1px solid var(--gold-line);margin-bottom:14px}
+.home-tier-art{width:96px;height:96px;border-radius:1.25rem;display:grid;place-items:center;background:var(--background);color:var(--primary);box-shadow:inset 0 0 30px -10px var(--primary)}.home-tier-art svg{width:calc(28px + var(--tier,1) * 6px);height:calc(28px + var(--tier,1) * 6px)}
+.home-tier-0{--tier:0}.home-tier-1{--tier:1}.home-tier-2{--tier:2}.home-tier-3{--tier:3}.home-tier-4{--tier:4}.home-tier-5{--tier:5}
+.home-tier h2{font-family:var(--font-display);font-size:24px;font-weight:400;margin:4px 0}.home-tier p{font-size:13px;color:var(--muted-foreground)}
+.tier-ladder{display:flex;gap:4px;margin-top:10px}.tier-ladder span{flex:1;height:4px;border-radius:999px;background:var(--border)}.tier-ladder .on{background:var(--primary)}
+@media(max-width:420px){.sheet-actions{grid-template-columns:1fr}.home-tier{grid-template-columns:64px minmax(0,1fr)}.home-tier-art{width:64px;height:64px}.top-money{font-size:11px;padding:4px 9px}}

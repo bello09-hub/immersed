@@ -23,3 +23,5 @@
 - Keep school, family budgets, chores, discipline and kid inventory in the pure life engine; normalize missing childhood state when loading older saves so existing stories survive.
 - Render childhood hubs through a shared presentation module; enrollment is an age-six engine choice, not a page-load side effect.
 - Use deterministic country-aware school and classmate names so reloading a save cannot rename its school.
+- Keep relationships, birthdays, peers, prefects and home tiers as pure rules in src/lib/social-engine.ts; social state derives deterministically until first changed so old saves need no migration.
+- Store lives in four browser save slots under one key; migrate the legacy single save into Slot 1 on load.
