@@ -149,9 +149,9 @@ export function prefectDuty(life: Life, duty: Duty): Life {
 export const homeTiers = [
   { id: 'Studio Apartment', min: 0, detail: 'One cozy room where the whole family shares everything, including the TV remote.' },
   { id: 'Shared Flat', min: 70000, detail: 'A compact flat above a busy street with noisy, friendly neighbors.' },
-  { id: 'Suburban Bungalow', min: 120000, detail: 'A single-storey home with a small yard and a wobbly gate.' },
-  { id: 'Townhouse', min: 250000, detail: 'A narrow, tall house with stairs you race up every night.' },
-  { id: 'Gated Villa', min: 450000, detail: 'A secure villa behind tall gates, with a garden and a guard who waves.' },
-  { id: 'Sprawling Estate', min: 700000, detail: 'A mansion with long corridors, manicured lawns, and rooms you have never entered.' },
+  { id: 'Suburban Bungalow', min: 100000, detail: 'A single-storey home with a small yard and a wobbly gate.' },
+  { id: 'Townhouse', min: 200000, detail: 'A narrow, tall house with stairs you race up every night.' },
+  { id: 'Gated Villa', min: 400000, detail: 'A secure villa behind tall gates, with a garden and a guard who waves.' },
+  { id: 'Sprawling Estate', min: 650000, detail: 'A mansion with long corridors, manicured lawns, and rooms you have never entered.' },
 ] as const;
 export function homeTier(life: Life) { return [...homeTiers].reverse().find(t => life.kid.homeValue >= t.min) ?? homeTiers[0]; }
