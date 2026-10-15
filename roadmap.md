@@ -1,4 +1,7 @@
 # IMMERSED
+- [ ] Update the uploaded standalone game with improved portraits and relationship reactions.
+- [ ] Add compact newspapers, persistent sports permission, sports and gym progression, and leadership safeguards.
+- [ ] Verify the updated standalone game and deliver the playable HTML file.
 - [x] Soften surfaces, containers and rail states for mobile.
 - [x] Add age-six enrollment and a complete school hub.
 - [x] Add family home, age-tiered chores, parent pitches and discipline.
