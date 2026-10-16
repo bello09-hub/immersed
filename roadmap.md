@@ -1,4 +1,7 @@
 # IMMERSED
+- [ ] Bring the latest uploaded v6 game into the preview without removing its existing features.
+- [ ] Add live character appearance editing and age-aware baby-to-elder circular portraits.
+- [ ] Verify appearance changes, aging and save persistence in the latest game.
 - [ ] Update the uploaded standalone game with improved portraits and relationship reactions.
 - [ ] Add compact newspapers, persistent sports permission, sports and gym progression, and leadership safeguards.
 - [ ] Verify the updated standalone game and deliver the playable HTML file.
